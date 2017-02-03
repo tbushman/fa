@@ -1,0 +1,165 @@
+extends layout
+block page
+	- var menu = 'login'
+block content
+	div.ms-Grid
+		div.ms-Grid-row
+			div.ms-Grid-col.ms-u-mdPush1.ms-u-md9.ms-u-lgPush1.ms-u-lg6
+				
+				p.ms-font-xl Already Registered?
+				a.ms-Button.ms-Button--primary(href="/login", role="button", ariaDescription="Log in")
+					span.ms-Button-label Log in
+				hr
+				p.ms-font-xl Register
+				p.ms-font-l Set avatar
+				div.ms-Grid-row
+					div.ms-Grid-col.ms-u-sm9.ms-u-xl11
+						input.ms-Button#avatar(type="file")
+					div.ms-Grid-col.ms-u-sm3.ms-u-xl1
+						div.ms-ListItem-image(style="float: right")
+							canvas#canvas
+				p.ms-font-l Upload PDF Resumé
+				div.ms-Grid-row
+					div.ms-Grid-col.ms-u-sm9.ms-u-xl11
+						input.ms-Button#resume(type="file")
+				div.upload-msg.ms-font-m
+				form#form(enctype="multipart/form-data", method="POST", action="/register", style="margin-bottom: 50px")
+					input#svgurl(type="hidden", name="svg")
+					input#avatarurl(type="hidden", name="avatar")
+					input#resumeurl(type="hidden", name="resume")
+					div.ms-TextField
+						label.ms-Label Name
+						input.ms-TextField-field(type="text", name="givenName")
+					div.ms-TextField
+						label.ms-Label Username
+						input.ms-TextField-field(type="text", name="username", maxlength="40")
+					div.ms-TextField
+						label.ms-Label Email
+						input.ms-TextField-field(type="email", name="email")
+					div.ms-DatePicker
+						div.ms-TextField(style="width: 100%")
+							label.ms-Label Begin date
+							input.ms-TextField-field#input_date(type="text", name="date", placeholder="Select a date")
+							span.ms-font-s i.e. your oldest resumé entry
+					div.ms-TextField
+						label.ms-Label Password
+						input.ms-TextField-field(type="password", name="password")
+					p
+					button.ms-Button.ms-Button--primary(type="submit", ariaDescription="Register")
+						span.ms-Button-label Register
+				#info #{info}
+	script(type="text/javascript").
+		$('#input_date').pickadate({
+			selectYears: 80,
+			selectMonths: true,
+			onOpen: function() {
+				scrollIntoView( this.$node )
+			}
+		})
+		function scrollIntoView( $node ) {
+			$('html,body').animate({
+				scrollTop: ~~$node.offset().top - 60
+			})
+		}
+		$('#resume').change(function(e){
+			e.preventDefault();
+		    var dataurl = null;
+		    var filesToUpload = document.getElementById('resume').files;
+		    var file = filesToUpload[0];
+			var pdffile = file.type;
+			if(pdffile !== "application/pdf") {
+				$('.upload-msg').html("<span class='msg-error'>Please Select A valid PDF File</span>");
+				return false;
+			} else {
+			    var reader = new FileReader();
+				var myPdf = null;
+			    reader.onloadend = function(e) {
+					myPdf = e.target.result;
+					console.log(myPdf)
+					$('#resumeurl').val(myPdf.replace(/^data:application\/pdf;base64,/, ''))
+			    }
+			    reader.readAsDataURL(file);
+			}
+		})
+		$('#avatar').change(function(e){
+			e.preventDefault();
+		    var dataurl = null;
+		    var filesToUpload = document.getElementById('avatar').files;
+		    var file = filesToUpload[0];
+			var imagefile = file.type;
+			var imageTypes= ["image/jpeg","image/png","image/jpg"];
+			
+			if(imageTypes.indexOf(imagefile) == -1) {
+				console.log(imagefile)
+				if (imagefile == "image/svg+xml") {
+					var reader = new FileReader();
+					var mySvg = null;
+				    reader.onloadend = function(e) {
+						mySvg = e.target.result;
+						$('#svgurl').val(mySvg.replace('data:image\/svg+xml;base64,', ''))
+						return false;
+					}
+					reader.readAsDataURL(file);
+					
+				} else {
+					$('.upload-msg').html("<span class='msg-error'>Please Select A valid Image File</span><br /><span>Only jpeg, jpg and png Images type allowed</span>");
+					return false;
+				}
+				
+			} else {
+				var img = document.createElement("img");
+			    var reader = new FileReader();
+			    reader.onload = function(e) {
+			        img.src = e.target.result;
+
+			        img.onload = function () {
+						var maxWidth = 1024 ;
+				        var maxHeight = 1024 ;
+
+						var w = img.width;
+						var h = img.height;
+
+						var can = $('#canvas')[0];
+						var ctx = can.getContext('2d');
+
+						if (w > 400) {
+
+							can.height = h/6;
+							can.width = w/6;
+
+							var can2 = document.createElement('canvas');
+							can2.width = w/2;
+						    can2.height = h/2;
+						    var ctx2 = can2.getContext('2d');
+
+							var can3 = document.createElement('canvas');
+							can3.width = w/4;
+							can3.height = h/4;
+							var ctx3 = can3.getContext('2d');
+
+							var can4 = document.createElement('canvas');
+							can4.width = w/4;
+							can4.height = h/4;
+							var ctx4 = can4.getContext('2d');
+
+						    ctx2.drawImage(img, 0, 0, w/2, h/2);
+						    ctx3.drawImage(can2, 0, 0, w/2, h/2, 0, 0, w/4, h/4);
+						    ctx4.drawImage(can3, 0, 0, w/4, h/4, 0, 0, w/6, h/6);
+							ctx.drawImage(can4, 0, 0, w/6, h/6, 0, 0, w/6, h/6);
+
+						} else {
+
+							can.height = h;
+							can.width = w;
+							ctx.drawImage(img, 0, 0, w, h);
+
+						}
+
+						dataurl = can.toDataURL("image/png");
+																		
+						$('#avatarurl').val(dataurl.replace(/^data:image\/png;base64,/, ''))
+			        } 
+			    }
+			    reader.readAsDataURL(file);
+			}
+		});

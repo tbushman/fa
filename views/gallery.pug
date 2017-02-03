@@ -1,0 +1,391 @@
+if (infowindow === 'gallery')
+	div(class="ms-Panel ms-Panel--large")
+		div.ms-Panel-main.ms-Grid#mainpanel
+			div.ms-Grid-row.ms-Panel-contentInner
+				if (type === 'image')
+					div.ms-Grid-col.ms-u-sm12.ms-u-lg8#append
+						img(src= img)
+				else
+					div.ms-Grid-col.ms-u-sm12.ms-u-lg8#append(style="height: 100%")
+						embed(src= img, type="application/pdf", width="100%", height="100%")
+				div.ms-Grid-row.ms-Grid-col.ms-u-sm12.ms-u-lg4#sidepanel
+					div.ms-Grid-col.ms-u-sm12
+						each group, k in doc.content
+							p.ms-font-s.ms-fontWeight-semibold(id="scrollto_"+group.index+"") #{group.properties.label} 
+
+							p.ms-font-xs #{group.properties.description}
+							each item, j in group.properties.media
+								div.ms-Grid-col.ms-u-sm12
+									a.ms-ListItem-image.gallery(id= item.index, name= group._id + "@all_" + group.index)
+										img(src= item.thumb)
+									div#hide
+										if (item.name === '')
+											span.ms-ListItem-secondaryText &nbsp
+										else
+											span.ms-ListItem-secondaryText #{item.name}
+										span.ms-ListItem-tertiaryText #{item.caption}
+
+										div.ms-ListItem-actions
+											if (item.url)
+												div.ms-ListItem-action
+													a(href= item.url, target="_blank")
+														i.ms-Icon.ms-Icon--link
+							p.ms-font-xs &nbsp
+					
+					a#closepanel
+						i.ms-Icon.ms-Icon--x
+					
+if (infowindow === 'cv')					
+	div(class="ms-Panel ms-Panel--large")
+		div.ms-Panel-main.ms-Grid#mainpanel
+			div.ms-Grid-row.ms-Panel-contentInner
+				a#closepanel
+					i.ms-Icon.ms-Icon--x
+				div.ms-Grid-col.ms-u-sm12(style="height: 100%")
+					embed(src= doc.doc, width="100%", height="100%")
+
+if (infowindow === 'new')
+	div(class="ms-Panel ms-Panel--small")
+		div.ms-Panel-main.ms-Grid#mainpanel
+			div.ms-Grid-row.ms-Panel-contentInner
+				a#closepanel
+					i.ms-Icon.ms-Icon--x
+				div.ms-Grid-col.ms-u-sm12#sidepanel
+					form#form(enctype="multipart/form-data", method="POST", action="/api/addcontent/"+(index+1)+"", style="margin-bottom: 50px")
+						div.ms-TextField
+							label.ms-Label Title
+							input.ms-TextField-field(type="text", name="title")
+						div.ms-TextField
+							label.ms-Label Label
+							input.ms-TextField-field(type="text", name="label")
+						div.ms-TextField
+							label.ms-Label Place
+							input.ms-TextField-field(type="text", name="place")
+						div.ms-TextField
+							label.ms-Label Description
+							textarea.ms-TextField-field(type="text", name="description")
+						div.ms-TextField
+							label.ms-Label Link
+							input.ms-TextField-field(type="text", name="linkurl")
+						div.ms-TextField
+							label.ms-Label Link caption
+							input.ms-TextField-field(type="text", name="linkcaption")
+						div.ms-DatePicker
+							div.ms-TextField(style="width: 100%")
+								label.ms-Label Begin date
+								input.ms-TextField-field#input_date1(type="text", name="datebegin", placeholder="Select a begin date")
+						div.ms-DatePicker
+							div.ms-TextField(style="width: 100%")
+								label.ms-Label End date
+								input.ms-TextField-field#input_date2(type="text", name="dateend", placeholder="Select an end date")
+						p.ms-font-l Add Up to three images
+						div.ms-Grid-row
+							div.ms-Grid-col.ms-u-xl12
+								input.ms-Button#media(type="file")
+							div.ms-Grid-col.ms-u-xl12#appendcanvas
+								
+															
+						input(type="hidden", id="lat", name="lat", value= lat)
+						input(type="hidden", id="lng", name="lng", value= lng)
+						
+						p.ms-font-s You may add more later
+						#info.ms-font-s #{info}
+						p
+						button.ms-Button.ms-Button--primary(type="submit", ariaDescription="Submit Feature to map")
+							span.ms-Button-label Submit
+							
+					
+if (infowindow === 'edit' || infowindow === 'layout')
+	- var display = 'none'
+	if (infowindow === 'edit')
+		- var size = 'medium'
+		- var append = 'ms-Grid-col ms-u-sm12 ms-u-lg8'
+		- var sidepanel = 'ms-Grid-col ms-u-sm12 ms-u-lg4'
+		- var colsize = 'sm12'
+	else
+		
+		- var size = 'large'
+		- var append = 'ms-Grid-col ms-u-lg8'
+		- var sidepanel = 'ms-Grid-col ms-u-smlg4'
+		- var colsize = colsize
+	div(class="ms-Panel ms-Panel--"+ size + "")
+		div.ms-Panel-main.ms-Grid#mainpanel
+			div.ms-Grid-row.ms-Panel-contentInner
+				div.ms-Grid-col.ms-u-sm12#sidepanel
+					div#info.ms-font-s
+					form#form(enctype="multipart/form-data", method="POST", action="/api/editcontent/"+index+"", style="margin-bottom: 50px")
+						a#editform.ms-Button(href="#", role="button")
+							span.ms-Button-label Edit Feature details
+						
+						#formshow(style="display: "+display+"")
+							div.ms-Grid-col.ms-u-sm12.ms-TextField
+								label.ms-Label Title
+								input.ms-TextField-field(type="text", name="title", value= doc.content[index].properties.title)
+							div.ms-Grid-col.ms-u-sm12.ms-TextField
+								label.ms-Label Label
+								input.ms-TextField-field(type="text", name="label", value= doc.content[index].properties.label)
+							div.ms-Grid-col.ms-u-sm12.ms-TextField
+								label.ms-Label Place
+								input.ms-TextField-field(type="text", name="place", value= doc.content[index].properties.place)
+							div.ms-Grid-col.ms-u-sm12.ms-TextField
+								label.ms-Label Link
+								input.ms-TextField-field(type="text", name="linkurl", value= doc.content[index].properties.link.url)
+							div.ms-Grid-col.ms-u-sm12.ms-TextField
+								label.ms-Label Caption
+								input.ms-TextField-field(type="text", name="linkcaption", value= doc.content[index].properties.link.caption)
+							div.ms-Grid-col.ms-u-sm12.ms-DatePicker
+								div.ms-TextField(style="width: 100%")
+									label.ms-Label Begin date
+									input.ms-TextField-field#input_date1(type="text", name="datebegin", value= doc.content[index].properties.time.begin)
+							div.ms-Grid-col.ms-u-sm12.ms-DatePicker
+								div.ms-TextField(style="width: 100%")
+									label.ms-Label End date
+									input.ms-TextField-field#input_date2(type="text", name="dateend", value= doc.content[index].properties.time.end)
+						
+						div.ms-Grid-col.ms-u-sm12
+							p.ms-font-xl #{doc.content[index].properties.place}	
+						a#closepanel
+							i.ms-Icon.ms-Icon--x
+						div.ms-Grid-col.ms-u-sm12
+							a#editmedia.ms-Button(href="#", role="button")
+								span.ms-Button-label Edit Media
+						div#mediashow.ms-Grid-col.ms-u-sm12(style="display: "+display+"")
+							p.ms-font-s.ms-fontWeight-semibold #{doc.content[index].properties.label} 
+								br
+								span.ms-font-s.ms-fontWeight-light #{doc.content[index].properties.title} 
+								span.ms-fontWeight-light | 
+								span.ms-fontWeight-light #{moment(doc.content[index].properties.time.begin).format('MMMM YYYY')} 
+								span.ms-fontWeight-light – 
+								span.ms-fontWeight-light #{moment(doc.content[index].properties.time.end).format('MMMM YYYY')}
+							span.ms-font-xs 
+								!= md(doc.content[index].properties.description)
+							p
+							each item, i in doc.content[index].properties.media
+								div.ms-Grid-col.ms-u-sm12.spacer#resize
+									a.ms-ListItem-image(href="#", id= item.index, name= doc.content[index]._id)
+										img(src= item.thumb)
+									input(type="hidden", name="thumb"+i+"", value= item.thumb)
+									if (item.image === "")
+										input(type="hidden", name="img"+i+"", value= item.iframe)
+									else
+										input(type="hidden", name="img"+i+"", value= item.image)
+								div.ms-Grid-row
+									div.ms-Grid-col.ms-u-sm12#hide
+										div.ms-TextField
+											label.ms-Label Image Title
+											input.ms-TextField-field(type="text", name="img"+i+"_name", value= item.name)
+										div.ms-TextField
+											label.ms-Label Image Caption
+											textarea.ms-TextField-field(type="text", name="img"+i+"_caption", value= item.caption, placeholder= item.caption)
+										div.ms-TextField
+											label.ms-Label Image URL
+											input.ms-TextField-field(type="text", name="img"+i+"_url", value= item.url)
+							p.ms-font-s Add media
+							div.ms-Grid-col.ms-u-xl12
+								input.ms-Button#media(type="file")
+							div.ms-Grid-col.ms-u-xl12#appendcanvas
+								
+										
+							input(type="hidden", id="lat", name="lat", value= doc.content[index].geometry.coordinates[1])
+							input(type="hidden", id="lng", name="lng", value= doc.content[index].geometry.coordinates[0])
+						div.ms-Grid-col.ms-u-sm12.spacer
+							a#editlayout.ms-Button(href="#", role="button")
+								span.ms-Button-label Edit Layout
+						div#layoutshow.ms-Grid-row.spacer(style="display: "+display+"")
+							if (infowindow === 'edit')
+								div.ms-TextField(class="ms-Grid-col ms-u-"+colsize+"")
+									label.ms-Label Description
+									textarea.ms-TextField-field#inputtext(type="text", name="description", value= doc.content[index].properties.description, placeholder= doc.content[index].properties.description)
+								div(class="ms-Grid-col ms-u-"+colsize+"")
+									span.ms-font-s#previewtext 
+										
+							else
+								p.ms-font-l Layout Type
+								p.ms-font-s.ms-fontWeight-semibold Please choose only one.
+									div.ms-Grid-row
+										div.ms-Grid-col.ms-u-sm12
+											div(class=(doc.content[index].properties.layout === 'sma')?"ms-ChoiceField":"ms-ChoiceField is-disabled")
+												a(id="sma", type="checkbox", aria-checked="false", class="ms-ChoiceField-input", href="/api/layout/sma/"+userid+"/"+index+"")
+												label.ms-ChoiceField-field(for="sma")
+													span.ms-label Small
+											div(class=(doc.content[index].properties.layout === 'med')?"ms-ChoiceField":"ms-ChoiceField is-disabled")
+												a(id="med", type="checkbox", aria-checked="false", class="ms-ChoiceField-input", href="/api/layout/med/"+userid+"/"+index+"")
+												label.ms-ChoiceField-field(for="med")
+													span.ms-label Medium
+											div(class=(doc.content[index].properties.layout === 'lar')?"ms-ChoiceField":"ms-ChoiceField is-disabled")
+												a(id="lar", type="checkbox", aria-checked="false", class="ms-ChoiceField-input", href="/api/layout/lar/"+userid+"/"+index+"")
+												label.ms-ChoiceField-field(for="lar")
+													span.ms-label Large
+										label.ms-Label Description
+										if (doc.content[index].properties.layout === 'sma')
+											div.ms-TextField(class="ms-Grid-col ms-u-sm4")
+												textarea.ms-TextField-field(type="text", name="description", value= doc.content[index].properties.description, placeholder= doc.content[index].properties.description)
+										if (doc.content[index].properties.layout === 'med')
+											div.ms-TextField(class="ms-Grid-col ms-u-sm8")
+												textarea.ms-TextField-field(type="text", name="description", value= doc.content[index].properties.description, placeholder= doc.content[index].properties.description)
+										if (doc.content[index].properties.layout === 'lar')
+											div.ms-TextField(class="ms-Grid-col ms-u-sm12")
+												textarea.ms-TextField-field(type="text", name="description", value= doc.content[index].properties.description, placeholder= doc.content[index].properties.description)
+										
+										
+											
+											
+						div.ms-Grid-row.spacer
+							button.ms-Button.ms-Button--primary.ms-Grid-col.ms-u-sm12.block.spacer(type="submit", ariaDescription="Submit Feature to map")
+								span.ms-Button-label Submit
+						
+					div.ms-Grid-row
+						a.ms-Button.ms-Button--alert.ms-Grid-col.ms-u-sm12#deletefeature(href="#", role="button")
+							span.ms-Button-label Delete Feature
+							span.ms-font-s(style="display: none") This cannot be undone. Continue?
+					div.ms-Grid-row.spacer
+						a.ms-Button.ms-Grid-col.ms-u-sm12(href="/", role="button")
+							span.ms-Button-label Cancel
+
+if (infowindow === 'publisher')
+	div(class="ms-Panel ms-Panel--small")
+		div.ms-Panel-main.ms-Grid#mainpanel
+			div.ms-Grid-row.ms-Panel-contentInner
+				a#closepanel
+					i.ms-Icon.ms-Icon--x
+				div.ms-Grid-col.ms-u-sm12#sidepanel
+					p.ms-font-xl #{doc.givenName} 
+					div.ms-Grid-col.ms-u-sm12
+						p.ms-font-s.ms-fontWeight-semibold #{doc.username} 
+							br
+							span.ms-fontWeight-light #{moment(doc.begin).format('MMMM YYYY')} 
+							span.ms-fontWeight-light – 
+							span.ms-fontWeight-light #{moment(doc.end).format('MMMM YYYY')}
+						span.ms-font-xs 
+							!= md(doc.content[index].properties.description)
+						p
+						div.ms-Grid-col.ms-u-sm12#resize
+							a.ms-ListItem-image(onclick="window.location.href='/"+doc.username+"'")
+								img(src= doc.avatar)
+							div#hide
+								a(href="mailto:"+doc.email+"", target="_top")
+									span.ms-ListItem-secondaryText #{doc.email}
+								a(href="/doc/"+doc._id+"/"+zoom+"/"+lat+"/"+lng+"")
+									span.ms-ListItem-tertiaryText CV
+
+if (infowindow === 'intro')
+	div(class="ms-Panel ms-Panel--large")
+		div.ms-Panel-main.ms-Grid#mainpanel
+			div.ms-Grid-row.ms-Panel-contentInner
+				div.ms-Grid-col.ms-u-sm12.ms-u-lg8#sidepanel
+					p.ms-font-xl #{doc.content[index].properties.place}
+					p.ms-font-m.ms-fontWeight-semibold #{doc.content[index].properties.label} 
+						br
+						span.ms-font-m.ms-fontWeight-light #{doc.content[index].properties.title} 
+						span.ms-fontWeight-light | 
+						span.ms-fontWeight-light #{moment(doc.content[index].properties.time.begin).format('MMMM YYYY')} 
+						span.ms-fontWeight-light – 
+						span.ms-fontWeight-light #{moment(doc.content[index].properties.time.end).format('MMMM YYYY')}
+					span.ms-font-s 
+						!= md(doc.content[index].properties.description)
+						
+				div#sidepanel.ms-Grid-col.ms-u-sm12.ms-u-lg4
+					each item, i in doc.content[index].properties.media
+						div.ms-Grid-col.ms-u-sm12#resize
+							a.ms-ListItem-image(href="#", id= item.index, name= doc.content[index]._id)
+								img(src= item.thumb)
+							div#hide
+								if (item.name === '')
+									span.ms-ListItem-secondaryText &nbsp
+								else
+									span.ms-ListItem-secondaryText #{item.name}
+								span.ms-ListItem-tertiaryText #{item.caption}
+
+								div.ms-ListItem-actions
+									if (item.url)
+										div.ms-ListItem-action
+											a(href= item.url, target="_blank")
+												i.ms-Icon.ms-Icon--link
+				a#closepanel
+					i.ms-Icon.ms-Icon--x
+					
+if (infowindow === 'doc')
+	if (img && img !== undefined)
+		- var size = 'large'
+		- var append = 'ms-Grid-col ms-u-sm12 ms-u-lg8'
+		- var sidepanel = 'ms-Grid-col ms-u-sm12 ms-u-lg4'
+	else
+		- var size = 'small'
+		- var append = 'ms-Grid-col ms-u-sm12'
+		- var sidepanel = 'ms-Grid-col ms-u-sm12'
+	div(class="ms-Panel ms-Panel--"+ size + "")
+		div.ms-Panel-main.ms-Grid#mainpanel
+			div.ms-Grid-row.ms-Panel-contentInner
+				if (img)
+					if (type === 'image')
+						div#append(class= append)
+							img(src= img)
+					else
+						div#append(class= append, style="height: 100%")
+							embed(src= img, type="application/pdf", width="100%", height="100%")
+				div.ms-Grid-row#sidepanel(class= sidepanel)
+					div.ms-Grid-col.ms-u-sm12
+						p.ms-font-xl #{doc.content[index].properties.place} 
+					
+					div.ms-Grid-col.ms-u-sm12
+						if (img)
+							p.ms-font-s.ms-fontWeight-semibold #{doc.content[index].properties.media[imgindex].name} 
+								if (doc.content[index].properties.media[imgindex].url)
+									span.ms-fontWeight-light | 
+									span.ms-fontWeight-light 
+										a(href=""+doc.content[index].properties.media[imgindex].url+"", target="_blank")
+											i.ms-Icon.ms-Icon--link
+
+							p.ms-font-xs #{doc.content[index].properties.media[imgindex].caption}
+							each item, i in doc.content[index].properties.media
+								div.ms-Grid-col.ms-u-sm12
+									a.ms-ListItem-image(id= item.index, name= doc.content[index]._id + "@" + index)
+										img(src= item.thumb)
+									div#hide
+										if (item.name === '')
+											span.ms-ListItem-secondaryText &nbsp
+										else
+											span.ms-ListItem-secondaryText #{item.name}
+										span.ms-ListItem-tertiaryText #{item.caption}
+
+										div.ms-ListItem-actions
+											if (item.url)
+												div.ms-ListItem-action
+													a(href= item.url, target="_blank")
+														i.ms-Icon.ms-Icon--link
+						else
+							p.ms-font-s.ms-fontWeight-semibold #{doc.content[index].properties.label} 
+								br
+								span.ms-font-s.ms-fontWeight-light #{doc.content[index].properties.title} 
+								span.ms-fontWeight-light | 
+								span.ms-fontWeight-light #{moment(doc.content[index].properties.time.begin).format('MMMM YYYY')} 
+								span.ms-fontWeight-light – 
+								span.ms-fontWeight-light #{moment(doc.content[index].properties.time.end).format('MMMM YYYY')}
+							span.ms-font-xs 
+								!= md(doc.content[index].properties.description)
+							p
+							each item, i in doc.content[index].properties.media
+								div.ms-Grid-col.ms-u-sm12#resize
+									a.ms-ListItem-image(href="#", id= item.index, name= doc.content[index]._id)
+										img(src= item.thumb)
+									div#hide
+										if (item.name === '')
+											span.ms-ListItem-secondaryText &nbsp
+										else
+											span.ms-ListItem-secondaryText #{item.name}
+										span.ms-ListItem-tertiaryText #{item.caption}
+
+										div.ms-ListItem-actions
+											if (item.url)
+												div.ms-ListItem-action
+													a(href= item.url, target="_blank")
+														i.ms-Icon.ms-Icon--link
+				if (loggedin)
+					a#editbutton(href="/api/editcontent/"+index+"")
+						i.ms-Icon.ms-Icon--editBox
+					a#closepanel
+						i.ms-Icon.ms-Icon--x
+							
+				else
+					a#closepanel
+						i.ms-Icon.ms-Icon--x

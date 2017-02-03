@@ -1,0 +1,54 @@
+{
+  "name": "fad",
+  "version": "0.0.1",
+  "description": "wip",
+  "main": "./bin/www",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tbushman/fa.git"
+  },
+  "keywords": [
+    "historimem"
+  ],
+  "author": "TBushman",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tbushman/fa/issues"
+  },
+  "homepage": "https://github.com/tbushman/fa#readme",
+  "dependencies": {
+    "assert": "^1.4.1",
+    "async": "^2.1.4",
+    "body-parser": "^1.15.2",
+    "character-parser": "^2.2.0",
+    "connect-mongodb-session": "^1.3.0",
+    "cookie-parser": "^1.4.3",
+    "dotenv": "^2.0.0",
+    "express": "^4.14.0",
+    "express-session": "^1.14.2",
+    "google-geolocation": "^1.0.1",
+    "highlight.js": "^9.9.0",
+    "i": "^0.3.5",
+    "jquery": "^3.1.1",
+    "leaflet": "^1.0.2",
+    "marked": "^0.3.6",
+    "mkdirp": "^0.5.1",
+    "moment": "^2.17.1",
+    "mongodb": "^2.2.19",
+    "mongoose": "^4.7.6",
+    "multer": "^1.2.1",
+    "npm": "^4.1.1",
+    "office-ui-fabric-core": "^5.1.0",
+    "office-ui-fabric-js": "^1.3.0",
+    "passport": "^0.3.2",
+    "passport-local": "^1.0.0",
+    "passport-local-mongoose": "^4.0.0",
+    "promise": "^7.1.1",
+    "pug": "^2.0.0-beta6",
+    "request": "^2.79.0",
+    "serve-favicon": "^2.3.2"
+  }
+}
