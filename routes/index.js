@@ -12,11 +12,10 @@ var spawn = require("child_process").spawn;
 var dotenv = require('dotenv');
 var Publisher = require('../models/publishers.js');
 var Geotime = require('../models/geotimes.js');
-var publishers = path.join(__dirname, '/../..');
+var publishers = path.join(__dirname, '/../../..');
 var request = require('request');
 var marked = require('marked');
 var upload = multer();
-
 /*marked.setOptions({
   highlight: function (code, lang, callback) {
     require('pygmentize-bundled')({ lang: lang, format: 'html' }, code, function (err, result) {
@@ -29,6 +28,8 @@ var upload = multer();
     return require('highlight.js').highlightAuto(code).value;
   }
 });*/
+dotenv.load();
+
 
 //Todo: user remove triggers userindex $inc -1
 var storage = multer.diskStorage({
@@ -64,7 +65,6 @@ var storage = multer.diskStorage({
 })
  
 var uploadmedia = multer({ storage: storage })
-dotenv.load();
 
 var geolocation = require ('google-geolocation') ({
 	key: process.env.GOOGLE_KEY
@@ -87,20 +87,23 @@ router.get('/', function (req, res) {
 		req.app.locals.loggedin = req.user.username;
 		return res.redirect('/api/publish')
 	} else {
-		return res.redirect('/home')
+		return res.redirect('/login')
 	}
 });
 
 /*router.all('/emergencyservices', function(req, res, next){
 	next()
 })*/
+function registerPublisher(req, res, next) {
+	
+}
 
-router.get('/register', function(req, res) {
+router.get('/register', function(req, res) {	
     return res.render('register', { } );
 });
 
 
-router.post('/register', upload.array(), function(req, res, next) {
+router.post('/register', upload.array()/*, registerPublisher*/, function(req, res, next) {
 	var imgurl;
 	var imgbuf;
 	if (req.body.svg) {
@@ -144,25 +147,54 @@ router.post('/register', upload.array(), function(req, res, next) {
 												}
 												var userindex = list.length;
 												var newimgurl = imgurl.replace('/var/www/pu', '').replace('/Users/traceybushman/Documents/pu.bli.sh/pu', '')
-												var newpdfurl = '/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf'
-												Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format() }), req.body.password, function(err, user) {
+												var newpdfurl = '/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
+												Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ ] }), req.body.password, function(err, user) {
 													if (err) {
 														return res.render('register', {info: "Sorry. That username already exists. Try again."});
 													}
+
 													req.app.locals.givenName = req.body.givenName;
 													req.app.locals.username = req.body.username;
 													passport.authenticate('local')(req, res, function () {
-														Publisher.findOne({username: req.body.username}, function(error, doc){
-															if (error) {
-																return next(error)
+														Geotime.find({}, function(er, data){
+															if (er) {
+																return next(er)
 															}
-															req.app.locals.userId = doc._id;
-															req.app.locals.loggedin = doc.username;
-															return res.redirect('/api/publish')
+															Publisher.findOneAndUpdate({username: req.body.username}, {$push:{links: data.length}}, {safe: true, new: true}, function(error, pu){
+																if (error) {
+																	return next(error)
+																}
+																req.app.locals.userId = pu._id;
+																req.app.locals.loggedin = pu.username;
+
+																var geotime;
+																if(data === undefined) {
+																	geotime = new Geotime({
+																		index: 0,
+																		userid: pu._id,
+																		content: [ ],
+																		tl: [ ]
+																	})
+																} else {
+																	geotime = new Geotime({
+																		index: data.length,
+																		userid: pu._id,
+																		content: [ ],
+																		tl: [ ]
+																	})
+																}
+																geotime.save(function(err, geo){
+																	if (err) {
+																		return next(err)
+																	}
+																	return res.redirect('/api/publish')
+																})	
+															})
 														})
-													});
-											  	});
-											})
+													});															
+												})
+										  	});											
+											
 										})
 								 	})
 								}
@@ -203,24 +235,52 @@ router.post('/register', upload.array(), function(req, res, next) {
 											var userindex = list.length;
 											var newimgurl = imgurl.replace('/var/www/pu', '').replace('/Users/traceybushman/Documents/pu.bli.sh/pu', '')
 											var newpdfurl = '/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
-											Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format() }), req.body.password, function(err, user) {
+											Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ ] }), req.body.password, function(err, user) {
 												if (err) {
 													return res.render('register', {info: "Sorry. That username already exists. Try again."});
 												}
+
 												req.app.locals.givenName = req.body.givenName;
 												req.app.locals.username = req.body.username;
 												passport.authenticate('local')(req, res, function () {
-													Publisher.findOne({username: req.body.username}, function(error, doc){
-														if (error) {
-															return next(error)
+													Geotime.find({}, function(er, data){
+														if (er) {
+															return next(er)
 														}
-														req.app.locals.userId = doc._id;
-														req.app.locals.loggedin = doc.username;
-														return res.redirect('/api/publish')
+														Publisher.findOneAndUpdate({username: req.body.username}, {$push:{links: data.length}}, {safe: true, new: true}, function(error, pu){
+															if (error) {
+																return next(error)
+															}
+															req.app.locals.userId = pu._id;
+															req.app.locals.loggedin = pu.username;
+
+															var geotime;
+															if(data === undefined) {
+																geotime = new Geotime({
+																	index: 0,
+																	userid: pu._id,
+																	content: [ ],
+																	tl: [ ]
+																})
+															} else {
+																geotime = new Geotime({
+																	index: data.length,
+																	userid: pu._id,
+																	content: [ ],
+																	tl: [ ]
+																})
+															}
+															geotime.save(function(err, geo){
+																if (err) {
+																	return next(err)
+																}
+																return res.redirect('/api/publish')
+															})	
+														})
 													})
-												});
-										  	});
-										})
+												});															
+											})
+									  	});											
 									})
 								})
 							}
@@ -241,25 +301,54 @@ router.post('/register', upload.array(), function(req, res, next) {
 								}
 								var userindex = list.length;
 								var newimgurl = imgurl.replace('/var/www/pu', '').replace('/Users/traceybushman/Documents/pu.bli.sh/pu', '')
-								var newpdfurl = '/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf'
-								Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format() }), req.body.password, function(err, user) {
+								var newpdfurl = '/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
+								Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ ] }), req.body.password, function(err, user) {
 									if (err) {
 										return res.render('register', {info: "Sorry. That username already exists. Try again."});
 									}
+								
 									req.app.locals.givenName = req.body.givenName;
 									req.app.locals.username = req.body.username;
 									passport.authenticate('local')(req, res, function () {
-										Publisher.findOne({username: req.body.username}, function(error, doc){
-											if (error) {
-												return next(error)
+										Geotime.find({}, function(er, data){
+											if (er) {
+												return next(er)
 											}
-											req.app.locals.userId = doc._id;
-											req.app.locals.loggedin = doc.username;
-											return res.redirect('/api/publish')
+											Publisher.findOneAndUpdate({username: req.body.username}, {$push:{links: data.length}}, {safe: true, new: true}, function(error, pu){
+												if (error) {
+													return next(error)
+												}
+												req.app.locals.userId = pu._id;
+												req.app.locals.loggedin = pu.username;
+											
+												var geotime;
+												if(data === undefined) {
+													geotime = new Geotime({
+														index: 0,
+														userid: pu._id,
+														content: [ ],
+														tl: [ ]
+													})
+												} else {
+													geotime = new Geotime({
+														index: data.length,
+														userid: pu._id,
+														content: [ ],
+														tl: [ ]
+													})
+												}
+												geotime.save(function(err, geo){
+													if (err) {
+														return next(err)
+													}
+													return res.redirect('/api/publish')
+												})	
+											})
 										})
-									});
-							  	});
-							})
+									});															
+								})
+						  	});											
+							
 						})
 					})
 				}
@@ -269,9 +358,7 @@ router.post('/register', upload.array(), function(req, res, next) {
 });
 
 router.get('/login', function(req, res, next){
-	return res.render('login', { 
-		user: req.user
-	});
+	return res.render('login', { });
 });
 
 router.post('/login', upload.array(), passport.authenticate('local'), function(req, res, next) {
@@ -465,60 +552,63 @@ router.post('/zoom/:userindex/:zoom/:lat/:lng', function(req, res, next){
 })
 
 router.get('/:username', function (req, res, next) {
-	//check if pos1 is username
 	//view user profile 
-	Geotime.find({}, function(err, pu) {
+	Geotime.find({}, function(err, data) {
 		if (err) {
 			return next(err)
 		}
-		Publisher.findOne({username: req.params.username}, function(error, doc){
+		Publisher.findOne({username: req.params.username}, function(error, pu){
 			if (error) {
 				return next(error)
 			}
 			//req.app.locals.userId = doc._id;
-			if (!err && doc !== undefined) {
+			if (!err && pu !== undefined) {
 				var zoom;
 				var lat;
 				var lng;
 				var info;
 				var index;
+				var userindex = pu.userindex;
+				if (req.app.locals.index) {
+					index = req.app.locals.index;
+				} else {
+					index = 0;
+				}
+				var datarray = [];
+				for (var l in data) {
+					datarray.push(data[l])
+				}
 				if (req.app.locals.zoom) {
 					zoom = req.app.locals.zoom;
 					lat = req.app.locals.lat;
 					lng = req.app.locals.lng;
 					info = 'Refreshed';
-					var datarray = [];
-					for (var l in pu) {
-						datarray.push(pu[l])
-					}
-					if (req.app.locals.index) {
-						index = req.app.locals.index;
-					} else {
-						index = 0;
-					}
+					
 					if (req.isAuthenticated()) {
 						return res.render('publish', {
-							username: doc.username,
-							userindex: doc.userindex,
+							username: data[userindex].username,
+							userindex: userindex,
 							loggedin: req.app.locals.loggedin,
 							index: index,
 							zoom: zoom,
-							doc: doc,
+							doc: data[userindex],
 							data: datarray,
-							tl: doc.tl,
+							pu: pu,
+							tl: data[userindex].tl,
 							lng: lng,
 							lat: lat,
 							info: info
 						})
 					} else {
 						return res.render('publish', {
-							username: doc.username,
-							userindex: doc.userindex,
+							username: data[userindex].username,
+							userindex: userindex,
 							index: index,
 							zoom: zoom,
-							doc: doc,
+							doc: data[userindex],
 							data: datarray,
-							tl: doc.tl,
+							pu: pu,
+							tl: data[userindex].tl,
 							lng: lng,
 							lat: lat,
 							info: info
@@ -527,32 +617,32 @@ router.get('/:username', function (req, res, next) {
 				} else {
 					zoom = 3
 
-					if (doc.content.length === 0) {
+					if (data[userindex].content.length === 0) {
 						return next('That user has not added any content yet.')
 					} else {
-						Publisher.findOne({username: req.params.username},/* {content: {$elemMatch: {'properties.current': true}}},*/ function(er, current){
+						Geotime.findOne({userid: pu._id},/* {content: {$elemMatch: {'properties.current': true}}},*/ function(er, doc){
 							if (er) {
 								return next(er)
 							}
 							console.log(current)
-							index = current.content[0].index;
-							lat = current.content[0].geometry.coordinates[1];
-							lng = current.content[0].geometry.coordinates[0];
+							lat = doc.content[index].geometry.coordinates[1];
+							lng = doc.content[index].geometry.coordinates[0];
 							info = 'Intro';
 							var datarray = [];
-							for (var l in pu) {
-								datarray.push(pu[l])
+							for (var l in data) {
+								datarray.push(data[l])
 							}
 							if (req.isAuthenticated()) {
 								return res.render('publish', {
-									username: doc.username,
-									userindex: doc.userindex,
+									username: pu.username,
+									userindex: pu.userindex,
 									infowindow: 'intro',
 									loggedin: req.app.locals.loggedin,
 									index: index,
 									zoom: zoom,
 									doc: doc,
 									data: datarray,
+									pu: pu,
 									tl: doc.tl,
 									lng: lng,
 									lat: lat,
@@ -560,13 +650,14 @@ router.get('/:username', function (req, res, next) {
 								})
 							} else {
 								return res.render('publish', {
-									username: doc.username,
-									userindex: doc.userindex,
+									username: pu.username,
+									userindex: pu.userindex,
 									infowindow: 'intro',
 									index: index,
 									zoom: zoom,
 									doc: doc,
 									data: datarray,
+									pu: pu,
 									tl: doc.tl,
 									lng: lng,
 									lat: lat,
@@ -643,6 +734,10 @@ router.all('/focus/:id/:index/:zoom/:lat/:lng', function(req, res, next){
 			
 			if (req.isAuthenticated()) { 
 				//if (req.user._id === userid) {
+				Publisher.findOne({_id: req.user._id}, function(er, pu){
+					if (er) {
+						return next(er)
+					}
 					return res.render('publish', {
 						index: index,
 						loggedin: req.app.locals.loggedin,
@@ -652,26 +747,13 @@ router.all('/focus/:id/:index/:zoom/:lat/:lng', function(req, res, next){
 						zoom: zoom,
 						data: datarray,
 						doc: doc,
+						pu: pu,
 						tl: doc.tl,
 						lat: lat,
 						lng: lng,
 						info: ':)'
 					})
-			/*	} else {
-					return res.render('publish', {
-						index: index,
-						infowindow: 'doc',
-						username: doc.username,
-						userindex: doc.userindex,
-						zoom: zoom,
-						data: datarray,
-						doc: doc,
-						tl: doc.tl,
-						lat: lat,
-						lng: lng,
-						info: ':)'
-					})
-				}*/
+				})
 				
 			} else {
 				return res.render('publish', {
@@ -734,19 +816,25 @@ router.get('/doc/:id/:zoom/:lat/:lng', function(req, res, next){
 				datarray.push(data[l])
 			}
 			if (req.isAuthenticated()){
-				return res.render('publish', {
-					index: 0,
-					infowindow: 'cv',
-					loggedin: req.app.locals.loggedin,
-					userindex: doc.userindex,
-					username: doc.username,
-					zoom: zoom,
-					data: datarray,
-					doc: doc,
-					tl: doc.tl,
-					lat: lat,
-					lng: lng,
-					info: ':)'
+				Publisher.findOne({_id: req.user._id}, function(er, pu){
+					if (er) {
+						return next(er)
+					}
+					return res.render('publish', {
+						index: 0,
+						infowindow: 'cv',
+						loggedin: req.app.locals.loggedin,
+						userindex: doc.userindex,
+						username: doc.username,
+						zoom: zoom,
+						data: datarray,
+						doc: doc,
+						pu: pu, 
+						tl: doc.tl,
+						lat: lat,
+						lng: lng,
+						info: ':)'
+					})
 				})
 				
 			} else {
@@ -804,22 +892,28 @@ router.all('/gallery/:id/:index/:imgindex/:zoom/:lat/:lng', function(req, res, n
 					datarray.push(data[l])
 				}
 				if (req.isAuthenticated()) {
-					return res.render('publish', {
-						index: index,
-						infowindow: 'gallery',
-						loggedin: req.app.locals.loggedin,
-						userindex: doc.userindex,
-						username: doc.username,
-						zoom: zoom,
-						data: datarray,
-						img: img,
-						imgindex: imgindex,
-						type: type,
-						doc: doc,
-						tl: doc.tl,
-						lat: lat,
-						lng: lng,
-						info: ':)'
+					Publisher.findOne({_id: req.user._id}, function(er, pu){
+						if (er) {
+							return next(er)
+						}
+						return res.render('publish', {
+							index: index,
+							infowindow: 'gallery',
+							loggedin: req.app.locals.loggedin,
+							userindex: doc.userindex,
+							username: doc.username,
+							zoom: zoom,
+							data: datarray,
+							pu: pu,
+							img: img,
+							imgindex: imgindex,
+							type: type,
+							doc: doc,
+							tl: doc.tl,
+							lat: lat,
+							lng: lng,
+							info: ':)'
+						})
 					})
 				} else {
 					return res.render('publish', {
@@ -870,22 +964,28 @@ router.all('/gallery/:id/:index/:imgindex/:zoom/:lat/:lng', function(req, res, n
 					datarray.push(data[l])
 				}
 				if (req.isAuthenticated()) {
-					return res.render('publish', {
-						index: index,
-						infowindow: 'doc',
-						loggedin: req.app.locals.loggedin,
-						userindex: doc.userindex,
-						username: doc.username,
-						zoom: zoom,
-						data: datarray,
-						img: img,
-						imgindex: imgindex,
-						type: type,
-						doc: doc,
-						tl: doc.tl,
-						lat: lat,
-						lng: lng,
-						info: ':)'
+					Publisher.findOne({_id: req.user._id}, function(er, pu){
+						if (er) {
+							return next(er)
+						}
+						return res.render('publish', {
+							index: index,
+							infowindow: 'doc',
+							loggedin: req.app.locals.loggedin,
+							userindex: doc.userindex,
+							username: doc.username,
+							zoom: zoom,
+							data: datarray,
+							pu: pu,
+							img: img,
+							imgindex: imgindex,
+							type: type,
+							doc: doc,
+							tl: doc.tl,
+							lat: lat,
+							lng: lng,
+							info: ':)'
+						})
 					})
 				} else {
 					return res.render('publish', {
@@ -936,19 +1036,25 @@ router.all('/publisherfocus/:userid/:zoom/:lat/:lng', function(req, res, next){
 				datarray.push(data[l])
 			}
 			if (req.isAuthenticated()) {
-				return res.render('publish', {
-					index: 0,
-					infowindow: 'publisher',
-					loggedin: req.app.locals.loggedin,
-					userindex: doc.userindex,
-					zoom: zoom,
-					data: datarray,
-					doc: doc,
-					tl: doc.tl,
-					lat: lat,
-					lng: lng,
-					info: ':)'
-				})			
+				Publisher.findOne({_id: req.user._id}, function(er, pu){
+					if (er) {
+						return next(er)
+					}
+					return res.render('publish', {
+						index: 0,
+						infowindow: 'publisher',
+						loggedin: req.app.locals.loggedin,
+						userindex: doc.userindex,
+						zoom: zoom,
+						data: datarray,
+						doc: doc,
+						pu: pu,
+						tl: doc.tl,
+						lat: lat,
+						lng: lng,
+						info: ':)'
+					})
+				})		
 				
 			} else {
 				return res.render('publish', {
@@ -1006,7 +1112,7 @@ router.get('/api/publish', function(req, res, next){
 			signalToNoiseRatio: 40
 	    }]
 	};
-	var loc;
+	var location;
 	var info;
 	// Get data 
 	async.waterfall([
@@ -1014,327 +1120,158 @@ router.get('/api/publish', function(req, res, next){
 			geolocation(params, function(err, data) {
 				if (err) {
 					console.log (err);
-					loc = null;
+					location = null;
 					info = 'Could not find your location'
 				} else {
-					loc = JSON.parse(JSON.stringify({ lng: data.location.lng, lat: data.location.lat }))
+					location = JSON.parse(JSON.stringify({ lng: data.location.lng, lat: data.location.lat }))
 					info = 'Publish something'
 				}
-				next(null, loc, info)
+				next(null, location, info)
 			});
 		},
-		function(loc, info, next){
-			Geotime.find({username: req.app.locals.username}, function(err, pu){
-				if (err) {
-					next(err)
+		function(location, info, next){
+			//su -
+			Publisher.findOne({userindex: 0}, function(error, pu){
+				if (error) {
+					next(error)
 				}
-				var tl = pu[0].tl
-				var userindex = parseInt(pu[0].userindex, 10)
-				if (!err && pu[0].content.length === 0) {
-					req.app.locals.index = 0
-					req.app.locals.userId = pu[0]._id
-					var thisindex = pu.length
-					var content = [];
-					var dateend = moment().utc().format();
-					var current = true;
-					
-					var entry = {
-						_id: req.app.locals.userId,
-						type: "Feature",
-						index: i,
-						properties: {
-							_id: userindex,
-							user: req.app.locals.userId,
-							title: importjson[i].properties.title,
-							label: importjson[i].properties.name,
-							place: importjson[i].properties.place,
-							description: importjson[i].properties.description,
-							current: current,
-							link: {
-								url: importjson[i].properties.link,
-								caption: importjson[i].properties.linktext
-							},
-							time: {
-								begin: importjson[i].properties.datebegin,
-								end: dateend
-							},
-							media: []
-						},
-						geometry: {
-							type: importjson[i].geometry.type,
-						    coordinates: [importjson[i].geometry.coordinates[0], importjson[i].geometry.coordinates[1]]
-						}
+				Geotime.findOne({index: 0}, function(err, doc){
+					if (err) {
+						next(err)
 					}
-					if (req.app.locals.username === 'tbushman') {
-						fs.access('./json/import_cdb.json', function(err) {
-							if (err && err.code === 'ENOENT') {
-								//console.log(err)
-								next(err)
-							} else {
-								var importthis = require('../json/import_cdb.json');
-								//var features = JSON.parse(JSON.stringify(importjson.features))
-								//console.log(features)
-								var importjson = JSON.parse(JSON.stringify(importthis.features));
-								importjson.sort(function(a, b){
-									return (a.properties.datebegin > b.properties.datebegin) ? -1 : ((a.properties.datebegin < b.properties.datebegin) ? 1 : 0);
-								})
+					var tl;
+					var userindex;
+					if (doc.content.length === 0) {
+						console.log('no doc')
+						tl = [];
+						userindex = 0;
+						req.app.locals.index = 0
+						req.app.locals.userId = pu._id
+						var thisindex = 0
+						var content = [];
+						var dateend = moment().utc().format();
+						var current = true;
 
-								
-								for (var i in importjson) {
-									var dateend;
-									var current;
-									if (importjson[i].properties.place === 'TBushman | Freelance Design and Data') {
-										dateend = moment().utc().format()
-										current = true;
-									} else {
-										dateend = importjson[i].properties.dateend;
-										current = false;
-									}
-									var entry = {
-										_id: req.app.locals.userId,
-										type: "Feature",
-										index: i,
-										properties: {
-											_id: userindex,
-											user: req.app.locals.userId,
-											title: importjson[i].properties.title,
-											label: importjson[i].properties.name,
-											place: importjson[i].properties.place,
-											description: importjson[i].properties.description,
-											current: current,
-											link: {
-												url: importjson[i].properties.link,
-												caption: importjson[i].properties.linktext
-											},
-											time: {
-												begin: importjson[i].properties.datebegin,
-												end: dateend
-											},
-											media: []
-										},
-										geometry: {
-											type: importjson[i].geometry.type,
-										    coordinates: [importjson[i].geometry.coordinates[0], importjson[i].geometry.coordinates[1]]
-										}
-									}
-									var c = 0;
-									for (var j = 1; j < 6; j++) {
-										var picno = 'pic'+j;
-										var thumb = picno+'_thumb';
-										var blurb = picno+'_blurb';
-										var name = picno+'_name';
-										var url = picno+'_url';
-										if (importjson[i].properties[picno] !== null) {
-											var image;
-											var thumb;
-											if (importjson[i].properties[picno].split('/')[0] !== 'http:') {
-												image = '/publishers/'+req.app.locals.username+'/'+ importjson[i].properties[picno]
-											} else {
-												image = importjson[i].properties[picno].replace('http://pu.bli.sh', '/publishers/'+req.app.locals.username+'')
-											}
-
-											if (importjson[i].properties[thumb].split('/')[0] !== 'http:') {
-												thumb = '/publishers/'+req.app.locals.username+'/'+ importjson[i].properties[thumb]
-											} else {
-												thumb = importjson[i].properties[thumb].replace('http://pu.bli.sh', '/publishers/'+req.app.locals.username+'')
-											}
-											var media1 = {
-												index: c,
-												name: importjson[i].properties[name],
-												image: image,
-												iframe: "",
-												thumb: thumb,
-												caption: importjson[i].properties[blurb],
-												url: importjson[i].properties[url],
-												links: []
-											}
-
-											entry.properties.media.push(media1)
-											c++
-										}
-									}
-									for (var k = 1; k < 4; k++) {
-										var ifno = 'iframe'+k;
-										var thumb = ifno+'_thumb';
-										var blurb = ifno+'_blurb';
-										var name = ifno+'_name';
-										var url = ifno+'_url';
-										if (importjson[i].properties[ifno] !== null) {
-											var iframe;
-											var thumb;
-											if (importjson[i].properties[ifno].split('/')[0] !== 'http:') {
-												iframe = '/publishers/'+req.app.locals.username+'/'+ importjson[i].properties[ifno]
-											} else {
-												iframe = importjson[i].properties[ifno].replace('http://pu.bli.sh', '/publishers/'+req.app.locals.username+'')
-											}
-
-											if (importjson[i].properties[thumb].split('/')[0] !== 'http:') {
-												thumb = '/publishers/'+req.app.locals.username+'/'+ importjson[i].properties[thumb]
-											} else {
-												thumb = importjson[i].properties[thumb].replace('http://pu.bli.sh', '/publishers/'+req.app.locals.username+'')
-											}
-											var media2 = {
-												index: c,
-												name: importjson[i].properties[name],
-												image: "",
-												iframe: iframe,
-												thumb: thumb,
-												caption: importjson[i].properties[blurb],
-												url: importjson[i].properties[url],
-												links: []
-											}
-
-											entry.properties.media.push(media2)
-											c++
-										}
-
-									}
-									content.push(entry)
-								}
-								var options = { 
-									//'overwrite': true,
-									'new': true,
-									'safe': true,
-									'upsert': false
-									//'multi': false 
-								}
-								Publisher.findOneAndUpdate(
-									{username: req.app.locals.username},
-									{$set: {content: content}},
-									options,
-									function(error, doc){
-										if (error) {
-											next(error)
-										} else {
-											var data = pu;
-											var loc = {
-												lng: doc.content[0].geometry.coordinates[0],
-												lat: doc.content[0].geometry.coordinates[1]
-											}
-											req.app.locals.userId = doc._id
-											next(null, data, loc, info, tl, userindex)
-										}
-									}
-								)
-							}
-						})
-					} else {
-						var content = [{
+						var entry = {
 							_id: req.app.locals.userId,
 							type: "Feature",
-							index: 0,
+							index: thisindex,
 							properties: {
 								_id: userindex,
 								user: req.app.locals.userId,
 								title: 'Home',
-								label: req.app.locals.username,
-								place: 'Edit me',
-								description: 'Edit me',
-								current: false,
+								label: 'fa',
+								place: 'fa.bli.sh.d',
+								description: 'fa.bli.sh.d',
+								current: true,
 								link: {
-									url: 'Edit me',
+									url: 'https://github.com/tbushman/fa',
 									caption: 'Edit me'
 								},
 								time: {
-									begin: pu[0].begin,
-									end: moment(pu[0].begin).add(1, 'years').utc().format()
+									begin: moment(pu.begin).utc().format(),
+									end: moment(pu.begin).add(1, 'years').utc().format()
 								},
 								media: []
 							},
 							geometry: {
 								type: 'Point',
-							    coordinates: [loc.lng, loc.lat]
+							    coordinates: [location.lng, location.lat]
 							}
-						}];
-						content = JSON.parse(JSON.stringify(content))
-						var options = { 
-							//'overwrite': true,
-							'new': true,
-							'safe': true,
-							'upsert': false
-							//'multi': false 
 						}
-						Publisher.findOneAndUpdate(
-							{_id: req.app.locals.userId},
-							{$set: {content: content}},
-							options,
-							function(error, doc){
-								if (error) {
-									next(error)
-								} else {
-									var data = pu;
-									var loc = {
-										lng: doc.content[0].geometry.coordinates[0],
-										lat: doc.content[0].geometry.coordinates[1]
-									}
-									req.app.locals.userId = doc._id
-									next(null, data, loc, info, tl, userindex)
-								}
+						content.push(JSON.parse(JSON.stringify(entry)))
+						/*var geotime = new Geotime({
+							index: 0,
+							userid: req.app.locals.userId,
+							content: content,
+							tl: tl
+						})
+						geotime.save(function(err){*/
+						var set = {$set:{}}
+						set.$set['content'] = content
+						Geotime.findOneAndUpdate({index: 0}, set, {safe: true, new: true, upsert: true}, function(err, doc){
+							if (err) {
+								next(err)
 							}
-						)
-					}
-					
-				} else {
-					Geotime.find({}, function(err, data){
-						if (err) {
-							return next(err)
-						}
-						next(null, data, loc, info, tl, userindex)						
-					})
-				}				
+							var loc = {
+								lng: doc.content[0].geometry.coordinates[0],
+								lat: doc.content[0].geometry.coordinates[1]
+							}
+							next(null, pu, doc, loc, info, tl, userindex)
+						})
+
+					} else {
+						Publisher.findOne({username: req.app.locals.loggedin}, function(err, pub){
+							if (err) {
+								return next(err)
+							}
+							console.log(req.app.locals.loggedin)
+							userindex = pub.userindex;
+							tl = doc.tl;
+							next(null, pub, doc, location, info, tl, userindex)
+						})
+						
+					}				
+				})
 			})
+			
 		},
-		function(data, loc, info, tl, userindex, next){
+		function(pu, doc, loc, info, tl, userindex, next){
+			req.app.locals.userindex = userindex;
 			if (tl.length === 0) {
 				
-				var end = new Date(data[0].end);
+				var end = new Date(pu.end);
 				var end_year = end.getFullYear() + 1;
 			
-				var begin = new Date(data[0].begin)
+				var begin = new Date(pu.begin)
 				var begin_year = begin.getFullYear();
 				var num_years = end_year - begin_year;
 				var tl = []
 				for (var i = 0; i <= num_years; i++) {
+
 					tl.push({year: begin_year+i, months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
 				}
-				//content = JSON.stringify(content)
-				var options = { 
-					//'overwrite': true,
-					'new': true,
-					'safe': true,
-					'upsert': false
-					//'multi': false 
-				}
-				Publisher.findOneAndUpdate(
-					{_id: req.app.locals.userId},
+				next(null, pu, doc, loc, info, tl, userindex)
+
+			} else {
+				next(null, pu, doc, loc, info, tl, userindex)
+			}
+			
+		},
+		function(pu, doc, loc, info, tl, userindex, next) {
+			if (userindex === 0) {
+				Geotime.findOneAndUpdate(
+					{index: 0},
 					{$set: {tl: tl}},
-					options,
+					{safe: true, new: true},
 					function(error, doc){
 						if (error) {
-							next(error)
-						} else {
-							Geotime.find({}, function(error, data) {
-								if (error) {
-									next(error)
-								} else {
-									var loc = {
-										lng: doc.content[0].geometry.coordinates[0],
-										lat: doc.content[0].geometry.coordinates[1]
-									}
-									info = 'Successfully imported geojson.'
-									next(null, data, loc, info, userindex)
-								}
-							})
+							console.log(error)
 						}
+						Geotime.find({}, function(er, data){
+							if (er) {
+								return next(er)
+							}
+
+							next(null, pu, data, doc, info, userindex)															
+						})
+						
 					}
 				)
 				
 			} else {
-				next(null, data, loc, info, userindex)
+				Geotime.find({}, function(er, data){
+					if (er) {
+						return next(er)
+					}
+
+					next(null, pu, data, doc, info, userindex)															
+				})
+				
 			}
 			
 		}
-	], function(err, data, loc, info, userindex){
+	], function(err, pu, data, doc, info, userindex){
 		if (err) {
 			return next(err)
 		}
@@ -1348,8 +1285,8 @@ router.get('/api/publish', function(req, res, next){
 			info = 'Refreshed'
 		} else {
 			zoom = 3
-			lat = loc.lat
-			lng = loc.lng
+			lat = doc.content[0].geometry.coordinates[1]
+			lng = doc.content[0].geometry.coordinates[0]
 		}
 		var index;
 		if (req.app.locals.index) {
@@ -1365,23 +1302,23 @@ router.get('/api/publish', function(req, res, next){
 			loggedin: req.app.locals.loggedin,
 			username: req.app.locals.username,
 			userindex: userindex,
-			index: index,
+			index: doc.index,
 			zoom: zoom,
 			data: datarray,
-			tl: data[0].tl,
+			doc: doc,
+			tl: doc.tl,
+			pu: pu,
 			lng: lng,
 			lat: lat,
 			info: info
-		})
-		
+		})	
 	})
-
 })
 
 router.all('/api/deletefeature/:index', function(req, res, next) {
 	var index = parseInt(req.params.index, 10);
-	Publisher.findOneAndUpdate(
-		{_id: req.app.locals.userId}, 
+	Geotime.findOneAndUpdate(
+		{userid: req.app.locals.userId}, 
 		{$pull:{content:{index:index}}}, 
 		{multi: false, new: true}, function(err, doc) {
 			if (err) {
@@ -1395,17 +1332,23 @@ router.all('/api/deletefeature/:index', function(req, res, next) {
 				for (var l in data) {
 					datarray.push(data[l])
 				}
-				return res.render('publish', {
-					loggedin: req.app.locals.loggedin,
-					username: req.app.locals.username,
-					userindex: doc.userindex,
-					index: 0,
-					zoom: 6,
-					data: datarray,
-					tl: data[0].tl,
-					lng: doc.content[0].geometry.coordinates[0],
-					lat: doc.content[0].geometry.coordinates[1],
-					info: 'Deleted'
+				Publisher.findOne({_id: req.user._id}, function(er, pu){
+					if (er) {
+						return next(er)
+					}
+					return res.render('publish', {
+						loggedin: req.app.locals.loggedin,
+						username: req.app.locals.username,
+						userindex: doc.userindex,
+						index: 0,
+						zoom: 6,
+						data: datarray,
+						pu: pu,
+						tl: data[0].tl,
+						lng: doc.content[0].geometry.coordinates[0],
+						lat: doc.content[0].geometry.coordinates[1],
+						info: 'Deleted'
+					})
 				})
 			})
 		}
@@ -1414,33 +1357,40 @@ router.all('/api/deletefeature/:index', function(req, res, next) {
 
 router.get('/api/editcontent/:index', function(req, res, next){
 	var index = parseInt(req.params.index, 10);
-	Publisher.findOne({_id: req.app.locals.userId}, function(error, doc){
+	Publisher.findOne({_id: req.app.locals.userId}, function(error, pu){
 		if (error) {
 			return next(error)
 		}
-		var loc = doc.content[index].geometry.coordinates;
-		Geotime.find({}, function(er, data){
-			if (er) {
-				return next(er)
+		var userindex = pu.userindex;
+		var userid = pu._id;
+		Geotime.findOne({userid: userid}, function(err, doc){
+			if (err) {
+				return next(err)
 			}
-			var datarray = [];
-			for (var l in data) {
-				datarray.push(data[l])
-			}
-			var loc = doc.content[index].geometry.coordinates;
-			return res.render('publish', {
-				infowindow: 'edit',
-				loggedin: req.app.locals.loggedin,
-				username: req.app.locals.username,
-				userindex: doc.userindex,
-				index: index,
-				zoom: 6,
-				doc: doc,
-				data: datarray,
-				tl: data[0].tl,
-				lng: loc[0],
-				lat: loc[1],
-				info: 'Edit your entry.'
+			Geotime.find({}, function(er, data){
+				if (er) {
+					return next(er)
+				}
+				var datarray = [];
+				for (var l in data) {
+					datarray.push(data[l])
+				}
+				var loc = data[userindex].content[index].geometry.coordinates;
+				return res.render('publish', {
+					infowindow: 'edit',
+					loggedin: req.app.locals.loggedin,
+					username: req.app.locals.username,
+					userindex: doc.userindex,
+					index: index,
+					zoom: 6,
+					doc: doc,
+					data: datarray,
+					pu: pu,
+					tl: data[userindex].tl,
+					lng: loc[0],
+					lat: loc[1],
+					info: 'Edit your entry.'
+				})
 			})
 		})
 	})
@@ -1462,11 +1412,11 @@ router.post('/api/editcontent/:index', upload.array(), function(req, res, next){
 	
 	async.waterfall([
 		function(next){
-			Publisher.findOne({_id: req.app.locals.userId}, function(err, pub) {
+			Geotime.findOne({userid: req.app.locals.userId}, function(err, doc) {
 				if (err) {
 					return next(err)
 				}
-				var id = parseInt(pub.userindex, 10)
+				var id = parseInt(doc.userindex, 10)
 				var keys = Object.keys(body);
 				keys.splice(keys.indexOf('title'), 1)
 				keys.splice(keys.indexOf('label'), 1)
@@ -1592,11 +1542,11 @@ router.post('/api/editcontent/:index', upload.array(), function(req, res, next){
 			var key2 = 'content.$.properties.media';
 			var set = {$set: {}};
 			set.$set[key2] = entrymedia;
-			Publisher.findOneAndUpdate({_id: req.app.locals.userId, content: {$elemMatch: {index: index}}}, push, {safe: true, new: true, upsert: false}, function(error, bleh){
+			Geotime.findOneAndUpdate({userid: req.app.locals.userId, content: {$elemMatch: {index: index}}}, push, {safe: true, new: true, upsert: false}, function(error, bleh){
 				if (error) {
 					return next(error)
 				}
-				Publisher.findOneAndUpdate({_id: req.app.locals.userId, content: {$elemMatch:{index: index}}}, set, {safe: true, new: true, upsert: false}, function(errr, doc){
+				Geotime.findOneAndUpdate({userid: req.app.locals.userId, content: {$elemMatch:{index: index}}}, set, {safe: true, new: true, upsert: false}, function(errr, doc){
 					if (errr) {
 						return next(errr)
 					}
@@ -1619,22 +1569,27 @@ router.post('/api/editcontent/:index', upload.array(), function(req, res, next){
 		for (var l in data) {
 			datarray.push(data[l])
 		}
-		return res.render('publish', {
-			infowindow: 'doc',
-			loggedin: req.app.locals.loggedin,
-			username: doc.username,
-			userindex: doc.userindex,
-			index: index,
-			zoom: 6,
-			doc: doc,
-			data: datarray,
-			tl: doc.tl,
-			lng: loc[0],
-			lat: loc[1],
-			info: ':)'
+		Publisher.findOne({username: req.app.locals.loggedin}, function(er, pu){
+			if (er) {
+				return next(er)
+			}
+			return res.render('publish', {
+				infowindow: 'doc',
+				loggedin: req.app.locals.loggedin,
+				username: pu.username,
+				userindex: pu.userindex,
+				index: index,
+				zoom: 6,
+				doc: doc,
+				data: datarray,
+				pu: pu,
+				tl: doc.tl,
+				lng: loc[0],
+				lat: loc[1],
+				info: ':)'
+			})
 		})
 	})
-	
 })
 
 router.get('/api/addfeature/:id/:zoom/:lat/:lng', function(req, res, next) {
@@ -1644,11 +1599,11 @@ router.get('/api/addfeature/:id/:zoom/:lat/:lng', function(req, res, next) {
 	}
 	req.app.locals.userId = id;*/
 	
-	Publisher.findOne({_id: req.app.locals.userId}, function(err, pu) {
+	Geotime.findOne({userid: req.app.locals.userId}, function(err, doc) {
 		if (err) {
 			return next(err)
 		}
-		var index = pu.content.length-1;
+		var index = doc.content.length-1;
 		Geotime.find({}, function(er, data){
 			if (er) {
 				return next(er)
@@ -1657,17 +1612,23 @@ router.get('/api/addfeature/:id/:zoom/:lat/:lng', function(req, res, next) {
 			for (var l in data) {
 				datarray.push(data[l])
 			}
-			return res.render('publish', {
-				infowindow: 'new',
-				loggedin: req.app.locals.loggedin,
-				username: req.app.locals.username,
-				userindex: pu.userindex,
-				index: index,
-				zoom: req.params.zoom,
-				data: datarray,
-				lng: req.params.lng,
-				lat: req.params.lat,
-				info: 'drag the feature to the desired location'
+			Publisher.findOne({_id: req.app.locals.userId}, function(er, pu){
+				if (er) {
+					return next(er)
+				}
+				return res.render('publish', {
+					infowindow: 'new',
+					loggedin: req.app.locals.loggedin,
+					username: req.app.locals.username,
+					userindex: doc.userindex,
+					index: index,
+					zoom: req.params.zoom,
+					data: datarray,
+					pu: pu,
+					lng: req.params.lng,
+					lat: req.params.lat,
+					info: 'drag the feature to the desired location'
+				})
 			})
 		})
 	})	
@@ -1699,7 +1660,7 @@ router.all('/api/uploadmedia/:index/:counter/:type', uploadmedia.single('img'), 
 	}
 	
 });
-
+/*
 router.all('/api/layout/:size/:id/:index', function(req, res, next){
 	var index = parseInt(req.params.index, 10);
 	var size = req.body.size;
@@ -1738,6 +1699,7 @@ router.all('/api/layout/:size/:id/:index', function(req, res, next){
 		})
 	})	
 })
+*/
 router.post('/api/addcontent/:index', upload.array(), function(req, res, next){
 	var index = parseInt(req.params.index, 10);
 	var title = req.body.title;
@@ -1754,11 +1716,11 @@ router.post('/api/addcontent/:index', upload.array(), function(req, res, next){
 	
 	async.waterfall([
 		function(next){
-			Publisher.findOne({_id: req.app.locals.userId}, function(err, pub) {
+			Geotime.findOne({userid: req.app.locals.userId}, function(err, doc) {
 				if (err) {
 					return next(err)
 				}
-				var id = parseInt(pub.userindex, 10)
+				var id = parseInt(doc.userindex, 10)
 				var keys = Object.keys(body);
 				keys.splice(keys.indexOf('title'), 1)
 				keys.splice(keys.indexOf('label'), 1)
@@ -1879,11 +1841,11 @@ router.post('/api/addcontent/:index', upload.array(), function(req, res, next){
 			var key2 = 'content.$.properties.media';
 			var set = {$set: {}};
 			set.$set[key2] = entrymedia;
-			Publisher.findOneAndUpdate({_id: req.app.locals.userId}, push, {safe: true, new: true, upsert: false}, function(error, bleh){
+			Geotime.findOneAndUpdate({userid: req.app.locals.userId}, push, {safe: true, new: true, upsert: false}, function(error, bleh){
 				if (error) {
 					return next(error)
 				}
-				Publisher.findOneAndUpdate({_id: req.app.locals.userId, content: {$elemMatch:{index: index}}}, set, {safe: true, new: true, upsert: false}, function(errr, doc){
+				Geotime.findOneAndUpdate({userid: req.app.locals.userId, content: {$elemMatch:{index: index}}}, set, {safe: true, new: true, upsert: false}, function(errr, doc){
 					if (errr) {
 						return next(errr)
 					}
@@ -1906,24 +1868,30 @@ router.post('/api/addcontent/:index', upload.array(), function(req, res, next){
 		for (var l in data) {
 			datarray.push(data[l])
 		}
-		return res.render('publish', {
-			infowindow: 'edit',
-			loggedin: req.app.locals.loggedin,
-			username: req.app.locals.username,
-			userindex: doc.userindex,
-			index: index,
-			zoom: 6,
-			doc: doc,
-			data: datarray,
-			tl: data[0].tl,
-			lng: loc[0],
-			lat: loc[1],
-			info: 'Edit your entry. Add a name, image captions, and image URLs.'
+		Publisher.findOne({_id: req.app.locals.userId}, function(er, pu){
+			if (er) {
+				return next(er)
+			}
+			return res.render('publish', {
+				infowindow: 'edit',
+				loggedin: req.app.locals.loggedin,
+				username: pu.username,
+				userindex: pu.userindex,
+				index: index,
+				zoom: 6,
+				doc: doc,
+				data: datarray,
+				pu: pu,
+				tl: data[userindex].tl,
+				lng: loc[0],
+				lat: loc[1],
+				info: 'Edit your entry. Add a name, image captions, and image URLs.'
+			})
 		})
 	})
 })
 
-router.post('/api/highlight/:id/:index/:snip/:whole', function(req, res, next){
+/*router.post('/api/highlight/:id/:index/:snip/:whole', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
 	console.log(outputPath)
 	var query = {_id: req.params.id, content: {$elemMatch: {index: index}}}
@@ -1936,6 +1904,6 @@ router.post('/api/highlight/:id/:index/:snip/:whole', function(req, res, next){
 		}
 		return marked(doc.content[index].description)
 	})
-})
+})*/
 
 module.exports = router;

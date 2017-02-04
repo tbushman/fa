@@ -1,10 +1,11 @@
 extends layout
 block page
-	if (username)
+	if (userindex)
 		- var menu = 'profile'
+		- var menudata = data[userindex]
 	else
 		- var menu = 'home'
-	- var menudata = data[userindex]
+		- var menudata = doc
 block content
 	- var zfactor = 0.15 * zoom;
 	- var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -15,17 +16,17 @@ block content
 	if (tl)
 		if (username)
 			#arrows
-				if (parseInt(index, 10)+1 < data[userindex].content.length)
-					a.arrow.left(href="/focus/"+data[userindex].content[parseInt(index, 10)+1]._id+"/"+data[userindex].content[parseInt(index, 10)+1].index+"/"+zoom+"/"+lat+"/"+lng+"")
+				if (parseInt(index, 10)+1 < menudata.content.length)
+					a.arrow.left(href="/focus/"+menudata.content[parseInt(index, 10)+1]._id+"/"+menudata.content[parseInt(index, 10)+1].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				else
-					a.arrow.left(href="/focus/"+data[userindex].content[0]._id+"/"+data[userindex].content[0].index+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.left(href="/focus/"+menudata.content[0]._id+"/"+menudata.content[0].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				if (parseInt(index, 10)-1 < 0)
-					a.arrow.right(href="/focus/"+data[userindex].content[data[userindex].content.length-1]._id+"/"+data[userindex].content[data[userindex].content.length-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.right(href="/focus/"+menudata.content[menudata.content.length-1]._id+"/"+menudata.content[menudata.content.length-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 				else
-					a.arrow.right(href="/focus/"+data[userindex].content[parseInt(index, 10)-1]._id+"/"+data[userindex].content[parseInt(index, 10)-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.right(href="/focus/"+menudata.content[parseInt(index, 10)-1]._id+"/"+menudata.content[parseInt(index, 10)-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 		else
 			#arrows
@@ -47,7 +48,7 @@ block content
 	if (tl)
 		#tl
 			if (username)
-				#wrapper(style="left: "+ (50-((new Date(data[userindex].content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(data[userindex].content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
+				#wrapper(style="left: "+ (50-((new Date(menudata.content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(menudata.content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
 
 					div.ms-Grid-col.ms-u-sm12
 						each year, i in tl
@@ -67,7 +68,7 @@ block content
 												span.ms-font-xs &nbsp
 				
 					div.ms-Grid-col.ms-u-sm12
-						each module, j in data[userindex].content
+						each module, j in menudata.content
 							if (doc && j === doc.content[index].index)
 								a.module.block(href="/focus/"+module._id+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + module._id + "@" + module.index + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 									span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{module.properties.title}
@@ -75,7 +76,7 @@ block content
 								a.module.block(href="/focus/"+module._id+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + module._id + "@" + module.index + "", style="left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 				
 			else
-				#wrapper(style="left: "+ (50-((new Date(data[userindex].begin).getFullYear() - tl[0].year + ((new Date(data[userindex].begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
+				#wrapper(style="left: "+ (50-((new Date(data[0].content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(data[0].content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
 
 					div.ms-Grid-col.ms-u-sm12
 						each year, i in tl
@@ -343,20 +344,20 @@ block content
 		} else {
 			getLayer(userindex, 'all')
 			if (window.location.pathname.split('/')[2] !== 'addfeature' && window.location.pathname.split('/')[2] !== 'editcontent') {
-				medialength = #{data[userindex].content[index].properties.media.length}
+				medialength = #{doc.content[index].properties.media.length}
 				
 				
-				lMarker = L.marker([#{data[userindex].content[index].geometry.coordinates[1]}, #{data[userindex].content[index].geometry.coordinates[0]}], {icon: customIcon}).addTo(map);
+				lMarker = L.marker([#{doc.content[index].geometry.coordinates[1]}, #{doc.content[index].geometry.coordinates[0]}], {icon: customIcon}).addTo(map);
 			} else {
 				if (window.location.pathname.split('/')[2] === 'addfeature') {
 					medialength = 0;
 				} else {
-					medialength = #{data[userindex].content[index].properties.media.length}
+					medialength = #{doc.content[index].properties.media.length}
 				}
-				lMarker = L.marker([#{data[userindex].content[index].geometry.coordinates[1]}, #{data[userindex].content[index].geometry.coordinates[0]}], {draggable: true, icon: customIcon}).addTo(map);
+				lMarker = L.marker([#{doc.content[index].geometry.coordinates[1]}, #{doc.content[index].geometry.coordinates[0]}], {draggable: true, icon: customIcon}).addTo(map);
 				
 			}
-			map.setView([#{data[userindex].content[index].geometry.coordinates[1]}, #{data[userindex].content[index].geometry.coordinates[0]}])
+			map.setView([#{doc.content[index].geometry.coordinates[1]}, #{doc.content[index].geometry.coordinates[0]}])
 		}
 					
 		map.on('zoomend', function(e){

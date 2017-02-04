@@ -6,7 +6,7 @@ var Content = new Schema({
 	type: String,
 	index: Number,
 	properties: {
-		_id: String,
+		_id: Number,
 		label: String,
 		title: String,
 		place: String,

@@ -14,7 +14,7 @@ var Publisher = new Schema({
 	email: String,
 	begin: Date,
 	end: Date,
-	contentindexes: [],
+	links: [],
 	tl: [{
 		year: Number,
 		months: [] 
@@ -26,4 +26,4 @@ var Publisher = new Schema({
 
 Publisher.plugin(passportLocalMongoose);
 
-module.exports = Publisher;
+module.exports = mongoose.model('Publisher', Publisher);

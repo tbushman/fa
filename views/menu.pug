@@ -4,26 +4,26 @@ if (menu === 'profile' || menu === 'home')
 			li
 				input#mySearch.ms-TextField-field(type="search", placeholder="search")
 				a(href="#", title="Menu")
-					img(src= menudata.avatar)
+					img(src= pu.avatar)
 
 				div#dropdown
 					a.drop.ms-Grid-col.ms-u-sm12#home(href="/home") 
 						span.ms-font-l pu.bli.sh Home
-					a.drop.ms-Grid-col.ms-u-sm12#cv(href="/doc/"+menudata._id+"/"+zoom+"/"+lat+"/"+lng+"") 
+					a.drop.ms-Grid-col.ms-u-sm12#cv(href="/doc/"+pu._id+"/"+zoom+"/"+lat+"/"+lng+"") 
 						span.ms-font-l CV
 					if (menudata.content[0].properties.media.length > 0)
-						a.drop.ms-Grid-col.ms-u-sm12#gallery(href="/gallery/"+menudata._id+"/all_0/0/"+zoom+"/"+lat+"/"+lng+"") 
+						a.drop.ms-Grid-col.ms-u-sm12#gallery(href="/gallery/"+pu._id+"/all_0/0/"+zoom+"/"+lat+"/"+lng+"") 
 							span.ms-font-l Gallery
 					if (loggedin)
-						if (loggedin === menudata.username)
-							a.drop.ms-Grid-col.ms-u-sm12#addfeature(href="/api/addfeature/"+menudata._id+"/"+zoom+"/"+lat+"/"+lng+"") 
+						if (loggedin === pu.username)
+							a.drop.ms-Grid-col.ms-u-sm12#addfeature(href="/api/addfeature/"+pu._id+"/"+zoom+"/"+lat+"/"+lng+"") 
 								span.ms-font-l Add Feature
 						a.drop.ms-Grid-col.ms-u-sm12#logout(href="/logout") 
 							span.ms-font-l Log out
 
-			a.username(href="mailto:"+menudata.email+"?Subject=Design%20Services%20Request", target="_top", title="E-mail") 
+			a.username(href="mailto:"+pu.email+"?Subject=Design%20Services%20Request", target="_top", title="E-mail") 
 
-				span.ms-font-l #{menudata.username}
+				span.ms-font-l #{pu.username}
 	else
 		#menu
 			li

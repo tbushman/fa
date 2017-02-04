@@ -6,20 +6,19 @@ var path = require('path');
 var dotenv = require('dotenv');
 var mongoose = require('mongoose');
 var promise = require('bluebird');
-var favicon = require('serve-favicon');
+//var favicon = require('serve-favicon');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var routes = require('./routes/index');
 var Publisher = require('./models/publishers');
-var Geotime = require('../models/geotimes.js');
+var Geotime = require('./models/geotimes.js');
 var async = require('async');
 var fs = require('fs');
-var Content = require('./models/content');
+//var Content = require('./models/content');
 
 dotenv.load();
-var app = express();
 
 passport.use(new LocalStrategy(Publisher.authenticate()));
 mongoose.Promise = promise;
@@ -43,13 +42,21 @@ passport.deserializeUser(function(id, done) {
 		}
     });
 });
+var app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
-app.locals.appTitle = 'pu.bli.sh';
-app.use(favicon(path.join(__dirname, 'public/img', 'favicon.ico')));
+//app.use('/publishers', express.static(path.join(__dirname, '../../pu/publishers')));
+app.locals.appTitle = 'fa.bli.sh';
+
+//What's up 
+/*
+
+*/
+app.use(express.static(path.join(__dirname, 'public')));
+//app.use(favicon(path.join(__dirname, '/public/img', 'favicon.ico')));
 app.locals.moment = require('moment');
 app.locals.$ = require('jquery');
 app.locals.fs = require('fs');
@@ -122,9 +129,8 @@ if (app.get('env') === 'production') {
 app.use(session(sess));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use('/publishers', express.static(path.join(__dirname, '../../pu/publishers')));
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/publishers', express.static(path.join(__dirname, '../publishers')));
 app.use('/', routes);
 
 // catch 404 and forward to error handler
@@ -160,7 +166,7 @@ app.use(function (err, req, res) {
 
 var uri = process.env.DEVDB;
 
-mongoose.connect(uri, {authMechanism: 'ScramSHA1'});
+mongoose.connect(uri/*, {authMechanism: 'ScramSHA1'}*/);
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 
