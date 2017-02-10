@@ -85,17 +85,185 @@ router.get('/', function (req, res) {
 		req.app.locals.userId = req.user._id;
 		req.app.locals.givenName = req.user.givenName;
 		req.app.locals.loggedin = req.user.username;
-		return res.redirect('/api/publish')
+		return res.redirect('/api/publish/'+req.user.username+'')
 	} else {
-		return res.redirect('/login')
+		return res.redirect('/home')
 	}
 });
 
 /*router.all('/emergencyservices', function(req, res, next){
 	next()
 })*/
-function registerPublisher(req, res, next) {
-	
+
+function updatePublisher(publisher, next){
+	Publisher.register(publisher, req.body.password, function(err, user) {
+		if (err) {
+			return res.redirect('/register');
+		}
+		req.app.locals.userId = user._id;
+		req.app.locals.loggedin = user.username;
+		passport.authenticate('local')(req, res, function () {
+			Publisher.findOne({_id: user._id}, function(error, pu){
+				if (error) {
+					return next(error)
+				}
+				return next(null, pu)
+			})
+			
+		});															
+	})
+}
+
+function updateGeotime(geoindex, name, publisher, next) {
+	var tl = []
+	var end = new Date();
+	var end_year = end.getFullYear() + 1;
+
+	var begin = new Date(publisher.begin)
+	var begin_year = begin.getFullYear();
+	var num_years = end_year - begin_year;
+	for (var i = 0; i <= num_years; i++) {
+
+		tl.push({year: begin_year+i, months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+	}
+	Geotime.find({}, function(er, data){
+		if (er) {
+			return next(er)
+		}
+		if (!er && data.length === 0) {
+			publisher['userindex'] = 0;
+			
+			var geotime = new Geotime({
+				name: name,
+				geoindex: parseInt(geoindex, 10),
+				publishers: [publisher],
+				tl: tl
+			})
+			geotime.save(function(err, doc){
+				if (err) {
+					return next(err)
+				}
+				return next(null, doc)
+			})
+		} else {
+			
+			var datarray = [];
+			for (var i in data) {
+				datarray.push(data[i])
+			}
+			publisher['userindex'] = datarray[geoindex].publishers.length;
+			if (geoindex < data.length) {
+
+				var push = {$push:{}};
+				push.$push['publishers'] = publisher;
+				var set = {$set:{}};
+				set.$set['tl'] = tl;
+				Geotime.findOneAndUpdate(
+					{geoindex: geoindex/*, publishers:{$elemMatch: {_id: user.id, username: req.body.username}}*/},
+					push,
+					{safe: true, new: true}, function(err, doc1){
+						if (err) {
+							return next(err)
+						}
+						Geotime.findOneAndUpdate(
+							{geoindex: geoindex},
+							set,
+							{safe: true, new: true}, function(err, doc){
+								if (err) {
+									return next(err)
+								}
+								return next(null, doc)
+							}
+						)	
+					}
+				)
+			} else {
+				var geotime = new Geotime({
+					name: name,
+					geoindex: parseInt(geoindex, 10),
+					publishers: [publisher],
+					tl: tl
+				})
+				geotime.save(function(err, doc){
+					if (err) {
+						return next(err)
+					}
+					return next(null, doc)
+				})
+			}
+		}
+	})	
+}
+
+function ensureUser(req, res, next) {
+	Publisher.findOne({username: ''+req.params.username+''}, function(err, user) {
+	    if (err) {
+	      return next(err);
+	    } 
+		if (user) {
+	      return next();
+	    } else {
+			if (id === 'emergencyservices') {
+				return res.redirect('http://es.bli.sh');
+			}
+	      return res.redirect('/')
+	    }
+	});
+}
+
+function ensureUserId(req, res, next) {
+	Publisher.findOne({_id: req.params.userid}, function(err, user) {
+	    if (err) {
+	      return next(err);
+	    } 
+		if (user) {
+	      return next();
+	    } else {
+			if (id === 'emergencyservices') {
+				return res.redirect('http://es.bli.sh');
+			}
+	      return res.redirect('/')
+	    }
+	});
+}
+
+function ensureUserIndex(req, res, next) {
+	Geotime.findOne({publishers:{userindex: parseInt(req.params.userindex, 10)}}, function(err, user) {
+	    if (err) {
+	      return next(err);
+	    } 
+		if (user._id === req.app.locals.userId) {
+	      return next();
+	    } else {
+		
+		/*	Publisher.find({}, function(er, data){
+				if (er) {
+					return next (err)
+				}
+				var datarray = [];
+				for (var i in data) {
+					datarray.push(data[i])
+				}
+				return res.render('publish', {
+					loggedin: req.app.locals.loggedin,
+					username: req.app.locals.username,
+					userindex: user.userindex,
+					index: parseInt(req.params.userindex, 10),
+					zoom: (req.app.locals.zoom)?req.app.locals.zoom:6,
+					data: datarray,
+					tl: pu.tl,
+					lng: user.content[index].geometry.coordinates[0],
+					lat: user.content[index].geometry.coordinates[1],
+					info: 'This is not your work. Continue?',
+					cont: user.userindex
+				})*/
+				//wip. for now, publisher can only edit own work
+				return res.redirect('/')
+				//return next()
+			//})
+	      	
+	    }
+	});
 }
 
 router.get('/register', function(req, res) {	
@@ -104,31 +272,35 @@ router.get('/register', function(req, res) {
 
 
 router.post('/register', upload.array()/*, registerPublisher*/, function(req, res, next) {
+	var link = {
+		name: req.body.name,
+		geoindex: parseInt(req.body.geoindex, 10)
+	}
 	var imgurl;
 	var imgbuf;
 	if (req.body.svg) {
 		imgbuf = new Buffer(req.body.svg, 'base64'); // decode
-		imgurl = ''+publishers+'/pu/publishers/fad/'+ req.body.username +'/images/avatar/'+ req.body.username + '.svg'
+		imgurl = ''+publishers+'/pu/publishers/fad/'+req.body.name+'/'+ req.body.username +'/images/avatar/'+ req.body.username + '.svg'
 	} else {
 		imgbuf = new Buffer(req.body.avatar, 'base64'); // decode
-		imgurl = ''+publishers+'/pu/publishers/fad/'+ req.body.username +'/images/avatar/'+ req.body.username + '.png'
+		imgurl = ''+publishers+'/pu/publishers/fad/'+req.body.name+'/'+ req.body.username +'/images/avatar/'+ req.body.username + '.png'
 	}
 	var pdf = req.body.resume;
 	var pdfbuf = new Buffer(req.body.resume, 'base64');
-	var p = ''+publishers+'/pu/publishers/fad/'+ req.body.username + ''
-	var pdfurl = ''+publishers+'/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf'
+	var p = ''+publishers+'/pu/publishers/fad/'+req.body.name+'/'+ req.body.username + ''
+	var pdfurl = ''+publishers+'/pu/publishers/fad/'+req.body.name+'/'+req.body.username+'/resume/'+ req.body.username + '.pdf'
 	fs.access(p, function(err) {
 		if (err && err.code === 'ENOENT') {
 			mkdirp(p, function(err){
 				if (err) {
 					console.log("err", err);
 				} else {
-					var imgdir = ''+publishers+'/pu/publishers/fad/'+ req.body.username + '/images/avatar'
+					var imgdir = ''+publishers+'/pu/publishers/fad/'+req.body.name+'/'+ req.body.username + '/images/avatar'
 					mkdirp(imgdir, function(err){
 						if (err) {
 							console.log("err", err);
 						} else {
-							var pdfdir = ''+publishers+'/pu/publishers/fad/'+ req.body.username + '/resume'
+							var pdfdir = ''+publishers+'/pu/publishers/fad/'+req.body.name+'/'+ req.body.username + '/resume'
 							mkdirp(pdfdir, function(err){
 								if (err) {
 									console.log("err", err);
@@ -147,54 +319,24 @@ router.post('/register', upload.array()/*, registerPublisher*/, function(req, re
 												}
 												var userindex = list.length;
 												var newimgurl = imgurl.replace('/var/www/pu', '').replace('/Users/traceybushman/Documents/pu.bli.sh/pu', '')
-												var newpdfurl = '/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
-												Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ ] }), req.body.password, function(err, user) {
-													if (err) {
-														return res.render('register', {info: "Sorry. That username already exists. Try again."});
+												var newpdfurl = '/pu/publishers/fad/'+req.body.name+'/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
+												
+												var publisher = new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ link ] })
+												updatePublisher(publisher, function(eror, pu){
+													if (eror) {
+														return next(eror)
 													}
-
 													req.app.locals.givenName = req.body.givenName;
 													req.app.locals.username = req.body.username;
-													passport.authenticate('local')(req, res, function () {
-														Geotime.find({}, function(er, data){
-															if (er) {
-																return next(er)
-															}
-															Publisher.findOneAndUpdate({username: req.body.username}, {$push:{links: data.length}}, {safe: true, new: true}, function(error, pu){
-																if (error) {
-																	return next(error)
-																}
-																req.app.locals.userId = pu._id;
-																req.app.locals.loggedin = pu.username;
-
-																var geotime;
-																if(data === undefined) {
-																	geotime = new Geotime({
-																		index: 0,
-																		userid: pu._id,
-																		content: [ ],
-																		tl: [ ]
-																	})
-																} else {
-																	geotime = new Geotime({
-																		index: data.length,
-																		userid: pu._id,
-																		content: [ ],
-																		tl: [ ]
-																	})
-																}
-																geotime.save(function(err, geo){
-																	if (err) {
-																		return next(err)
-																	}
-																	return res.redirect('/api/publish')
-																})	
-															})
-														})
-													});															
+													updateGeotime(link.geoindex, link.name, publisher, function(er, doc){
+														if (er) {
+															return next(er)
+														}
+														req.app.locals.geoindex = doc.geoindex;
+														return res.redirect('/api/publish/'+req.body.username+'')
+													})
 												})
 										  	});											
-											
 										})
 								 	})
 								}
@@ -204,8 +346,8 @@ router.post('/register', upload.array()/*, registerPublisher*/, function(req, re
 				}						
 			});			
 		} else {
-			var pavatar = ''+publishers+'/pu/publishers/fad/'+ req.body.username + '/images/avatar'
-			var presume =  ''+publishers+'/pu/publishers/fad/'+ req.body.username + '/resume'
+			var pavatar = ''+publishers+'/pu/publishers/fad/'+req.body.name+'/'+ req.body.username + '/images/avatar'
+			var presume =  ''+publishers+'/pu/publishers/fad/'+req.body.name+'/'+ req.body.username + '/resume'
 			fs.access(pavatar, function(err) {
 				if (err && err.code === 'ENOENT') {
 					mkdirp(pavatar, function(err){
@@ -234,53 +376,24 @@ router.post('/register', upload.array()/*, registerPublisher*/, function(req, re
 											}
 											var userindex = list.length;
 											var newimgurl = imgurl.replace('/var/www/pu', '').replace('/Users/traceybushman/Documents/pu.bli.sh/pu', '')
-											var newpdfurl = '/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
-											Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ ] }), req.body.password, function(err, user) {
-												if (err) {
-													return res.render('register', {info: "Sorry. That username already exists. Try again."});
+											var newpdfurl = '/pu/publishers/fad/'+req.body.name+'/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
+											
+											var publisher = new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ link ] })
+											updatePublisher(publisher, function(eror, pu){
+												if (eror) {
+													return next(eror)
 												}
-
 												req.app.locals.givenName = req.body.givenName;
 												req.app.locals.username = req.body.username;
-												passport.authenticate('local')(req, res, function () {
-													Geotime.find({}, function(er, data){
-														if (er) {
-															return next(er)
-														}
-														Publisher.findOneAndUpdate({username: req.body.username}, {$push:{links: data.length}}, {safe: true, new: true}, function(error, pu){
-															if (error) {
-																return next(error)
-															}
-															req.app.locals.userId = pu._id;
-															req.app.locals.loggedin = pu.username;
-
-															var geotime;
-															if(data === undefined) {
-																geotime = new Geotime({
-																	index: 0,
-																	userid: pu._id,
-																	content: [ ],
-																	tl: [ ]
-																})
-															} else {
-																geotime = new Geotime({
-																	index: data.length,
-																	userid: pu._id,
-																	content: [ ],
-																	tl: [ ]
-																})
-															}
-															geotime.save(function(err, geo){
-																if (err) {
-																	return next(err)
-																}
-																return res.redirect('/api/publish')
-															})	
-														})
-													})
-												});															
+												updateGeotime(link.geoindex, link.name, publisher, function(er, doc){
+													if (er) {
+														return next(er)
+													}
+													req.app.locals.geoindex = doc.geoindex;
+													return res.redirect('/api/publish/'+req.body.username+'')
+												})
 											})
-									  	});											
+									  	});
 									})
 								})
 							}
@@ -301,54 +414,39 @@ router.post('/register', upload.array()/*, registerPublisher*/, function(req, re
 								}
 								var userindex = list.length;
 								var newimgurl = imgurl.replace('/var/www/pu', '').replace('/Users/traceybushman/Documents/pu.bli.sh/pu', '')
-								var newpdfurl = '/pu/publishers/fad/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
-								Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ ] }), req.body.password, function(err, user) {
+								var newpdfurl = '/pu/publishers/fad/'+req.body.name+'/'+req.body.username+'/resume/'+ req.body.username + '.pdf';
+								Publisher.register(new Publisher({ username : req.body.username, givenName: req.body.givenName, email: req.body.email, userindex: userindex, avatar: newimgurl, doc: newpdfurl, begin: req.body.date, end: moment().utc().format(), links: [ link ] }), req.body.password, function(err, user) {
 									if (err) {
 										return res.render('register', {info: "Sorry. That username already exists. Try again."});
 									}
-								
+									
+									
 									req.app.locals.givenName = req.body.givenName;
 									req.app.locals.username = req.body.username;
+									req.app.locals.userId = user._id;
+									req.app.locals.loggedin = user.username;
 									passport.authenticate('local')(req, res, function () {
-										Geotime.find({}, function(er, data){
-											if (er) {
-												return next(er)
+										Publisher.findOne({_id: user._id}, function(error, pu){
+											if (error) {
+												return next(error)
 											}
-											Publisher.findOneAndUpdate({username: req.body.username}, {$push:{links: data.length}}, {safe: true, new: true}, function(error, pu){
-												if (error) {
-													return next(error)
+											var publisher = {
+												_id: pu._id,
+												username: pu.username,
+												begin: req.body.date
+											}
+											updateGeotime(link.geoindex, link.name, publisher, function(er, doc){
+												if (er) {
+													return next(er)
 												}
-												req.app.locals.userId = pu._id;
-												req.app.locals.loggedin = pu.username;
-											
-												var geotime;
-												if(data === undefined) {
-													geotime = new Geotime({
-														index: 0,
-														userid: pu._id,
-														content: [ ],
-														tl: [ ]
-													})
-												} else {
-													geotime = new Geotime({
-														index: data.length,
-														userid: pu._id,
-														content: [ ],
-														tl: [ ]
-													})
-												}
-												geotime.save(function(err, geo){
-													if (err) {
-														return next(err)
-													}
-													return res.redirect('/api/publish')
-												})	
+												req.app.locals.geoindex = doc.geoindex;
+												return res.redirect('/api/publish/'+req.body.username+'')
 											})
 										})
+										
 									});															
 								})
-						  	});											
-							
+						  	});
 						})
 					})
 				}
@@ -365,7 +463,7 @@ router.post('/login', upload.array(), passport.authenticate('local'), function(r
 	req.app.locals.userId = req.user._id;
 	req.app.locals.loggedin = req.user.username;
 	req.app.locals.username = req.user.username;
-    res.redirect('/api/publish')
+    res.redirect('/api/publish/'+req.user.username+'')
 });
 
 router.get('/logout', function(req, res) {
@@ -392,9 +490,11 @@ router.get('/logout', function(req, res) {
 });
 
 router.get('/home', function(req, res, next) {
-	req.app.locals.username = null;
+	//req.app.locals.username = null;
 	var arp = spawn('arp', ['-a']);
 	//console.log(arp.stdio[0].Pipe)
+	
+	//todo catch nazis...................................................................................
 	var mac;
 	arp.stdout.on('data', function(data){
 		data += '';
@@ -409,7 +509,7 @@ router.get('/home', function(req, res, next) {
 			signalToNoiseRatio: 40
 	    }]
 	};
-	
+	//...................................................................................................
 	var loc;
 	var info;
 	// Get data 
@@ -428,7 +528,9 @@ router.get('/home', function(req, res, next) {
 			});
 		},
 		function(loc, info, next){
-			
+			//build global timeline
+			//timeline is embedded in the first level of the Geotime model
+			//each timeline / Geotime is a group project with content and publisher arrays queried by _id
 			Geotime.find({}, function(err, data){
 				if (err) {
 					next(err)
@@ -437,71 +539,101 @@ router.get('/home', function(req, res, next) {
 				if (!err && data.length === 0){
 					return res.redirect('/register')
 				}
-				if (!err && !req.app.locals.tl) {
-					var tlbegin = []
-					var tlend = []
-					for (var i in data) {
-						tlbegin.push(data[i].tl[0].year)
-						tlend.push(data[i].tl[data[i].tl.length-1].year)
-					}
-					tlbegin.sort()
-					tlend.sort()
-					var num_years = tlend[tlend.length-1] - tlbegin[0];
-					var tl = []
-					for (var i = 0; i <= num_years; i++) {
-						tl.push({year: tlbegin[0]+i, months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-					}
-					req.app.locals.tl = tl
-					next(null, loc, info, tl, data)
-				} else {
-					tl = req.app.locals.tl
-					next(null, loc, info, tl, data)
+				var tlbegin = []
+				var tlend = []
+				for (var i in data) {
+					tlbegin.push(data[i].tl[0].year)
+					tlend.push(data[i].tl[data[i].tl.length-1].year)
 				}
+				tlbegin.sort()
+				tlend.sort()
+				var num_years = tlend[tlend.length-1] - tlbegin[0];
+				var tl = []
+				for (var i = 0; i <= num_years; i++) {
+					tl.push({year: tlbegin[0]+i, months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+				}
+				next(null, loc, info, tl, data)
 				
 			})
 		}
 	], function(err, loc, info, tl, data) {
+		if (err) {
+			return next(err)
+		}
 		var zoom;
 		var lat;
 		var lng;
+		var index = 0;
 		if (req.app.locals.zoom) {
 			zoom = req.app.locals.zoom
 			lat = req.app.locals.lat
 			lng = req.app.locals.lng
+			//index = req.app.locals.index
 			info = 'Refreshed'
 		} else {
 			zoom = 3
 			lat = loc.lat
 			lng = loc.lng
+			//index: 0
 		}
-		var index;
-		/*if (req.app.locals.index) {
-			index = req.app.locals.index
-		} else {*/
-			index = 0
-		//}
-		var datarray = [];
-		var userindarray = [];
+		
+		/*var datarray = [];
 		for (var l in data) {
 			datarray.push(data[l])
-			userindarray.push(data[l].userindex)
-		}
+		}*/
+		
 		if (req.isAuthenticated()) {
-			return res.render('publish', {
-				userindex: userindarray[userindarray.length-1],
-				loggedin: req.app.locals.loggedin,
-				data: datarray,
-				tl: tl,
-				index: index,
-				zoom: zoom,
-				lng: lng,
-				lat: lat,
-				info: info
+			Geotime.find({publishers:{_id:req.user._id}}, function(er, pubs){
+				if (er) {
+					return next(err)
+				}
+				var current = []
+				var geoindexes = []
+				for (var i in pubs) {
+					for (var j in pubs[i].content) {
+						if (pubs[i].content[j].properties.current === true) {
+							current.push(pubs[i].content[j].index)
+							geoindexes.push(pubs[i].geoindex)
+						}	
+					}
+				}
+				var geoindex = geoindexes[geoindexes.length-1]
+				index = current[current.length-1]
+				if (!er && pubs === null) {
+					return res.render('publish', {
+						geoindex: geoindex,
+						index: index,
+						data: data,//rray,
+						doc: data[data.length-1],
+						tl: tl,
+						index: index,
+						zoom: zoom,
+						lng: lng,
+						lat: lat,
+						info: info
+					})
+				}
+				return res.render('publish', {
+					geoindex: geoindex,
+					index: index,
+					loggedin: req.app.locals.loggedin,
+					data: data,
+					doc: pubs[geoindex],
+					tl: tl,
+					index: index,
+					zoom: zoom,
+					lng: lng,
+					lat: lat,
+					info: info
+				})
 			})
+			
 		} else {
 			return res.render('publish', {
-				userindex: userindarray[userindarray.length-1],
-				data: datarray,
+				geoindex: data[data.length - 1].geoindex,
+				index: index,
+				data: data,//rray,
+				doc: data[data.length-1],
 				tl: tl,
 				index: index,
 				zoom: zoom,
@@ -513,168 +645,217 @@ router.get('/home', function(req, res, next) {
 	})
 })
 
-router.post('/zoom/:userindex/:zoom/:lat/:lng', function(req, res, next){
+router.post('/zoom/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 	var zoom = parseInt(req.params.zoom, 10);
 	var lat = req.params.lat;
 	var lng = req.params.lng;
-	var userindex = parseInt(req.params.userindex, 10);
-	Geotime.find({}, function(err, data){
-		if (err) {
-			next(err)
-		}
-		var index;
-		if (req.app.locals.index) {
-			index = req.app.locals.index
-		} else {
-			index = 0
-		}
-		var datarray = [];
-		var userindarray = [];
-		for (var l in data) {
-			datarray.push(data[l])
-			userindarray.push(data[l].userindex)
-		}
-		req.app.locals.zoom = zoom;
-		req.app.locals.lat = lat;
-		req.app.locals.lng = lng;
-		/*return res.render('publish', {
-			userindex: userindarray[userindarray.length-1],
-			data: datarray,
-			tl: tl,
-			index: index,
-			zoom: zoom,
-			lng: lng,
-			lat: lat,
-			info: 'zoomed'
-		})*/
-		return res.send('home')
-	})
+	var geoindex = parseInt(req.params.geoindex, 10);
+	var index = parseInt(req.params.index, 10);
+	req.app.locals.zoom = zoom;
+	req.app.locals.lat = lat;
+	req.app.locals.lng = lng;
+	req.app.locals.geoindex = geoindex;
+	req.app.locals.index = index;
+	return res.send('home')
 })
 
-router.get('/:username', function (req, res, next) {
+/*router.param('username', function (req, res, next, id) {
+ 	var outputPath = url.parse(req.url).pathname;
+	console.log(outputPath, id)
+ 	// try to get the user details from the User model and attach it to the request object
+	//see express docs
+	Publisher.findOne({username: ''+id+''}, function(err, user) {
+	    if (err) {
+	      next(err);
+	    } else if (user) {
+	      req.user = user;
+	      next();
+	    } else {
+			if (id === 'emergencyservices') {
+				return res.redirect('http://es.bli.sh');
+			}
+	      return res.redirect('/')
+	    }
+	});
+});*/
+
+router.get('/:username', ensureUser, function (req, res, next) {
+	
 	//view user profile 
 	Geotime.find({}, function(err, data) {
 		if (err) {
 			return next(err)
 		}
-		Publisher.findOne({username: req.params.username}, function(error, pu){
+		//var contentarray = [];
+		//about to try getting content from all where req publisher is collaborative
+		/*for (var i in data) {
+			for (var j in data[i].content) {
+				contentarray.push(data[i].content[j].userindex)
+			}
+			
+		}*/
+		Geotime.find({'publishers.username': req.params.username}, function(error, pu){
 			if (error) {
 				return next(error)
 			}
-			//req.app.locals.userId = doc._id;
-			if (!err && pu !== undefined) {
-				var zoom;
-				var lat;
-				var lng;
-				var info;
-				var index;
-				var userindex = pu.userindex;
-				if (req.app.locals.index) {
-					index = req.app.locals.index;
+			if (!err && pu[0] === undefined) {
+				return res.redirect('/home')
+			} else {
+				var contentarray = [];
+				for (var i in pu) {
+					for (var j in pu[i].content) {
+						if (pu[i].content[j]._id === req.app.locals.userId) {
+							contentarray.push(pu[i].content[j].userindex);
+						}
+					}
+				}
+				if (contentarray.length < 1) {
+					return res.redirect('/home')
 				} else {
-					index = 0;
-				}
-				var datarray = [];
-				for (var l in data) {
-					datarray.push(data[l])
-				}
-				if (req.app.locals.zoom) {
-					zoom = req.app.locals.zoom;
-					lat = req.app.locals.lat;
-					lng = req.app.locals.lng;
-					info = 'Refreshed';
-					
-					if (req.isAuthenticated()) {
-						return res.render('publish', {
-							username: data[userindex].username,
-							userindex: userindex,
-							loggedin: req.app.locals.loggedin,
-							index: index,
-							zoom: zoom,
-							doc: data[userindex],
-							data: datarray,
-							pu: pu,
-							tl: data[userindex].tl,
-							lng: lng,
-							lat: lat,
-							info: info
-						})
+					var geoindex;
+					//geoindex is like the publisher condom
+					//to house the content and the publisher
+					var userindex;
+					//to identify collaborator in api
+					var index;
+					//to identify content globally.
+					//reference to collaborators array via userindex ...
+					if (req.app.locals.geoindex) {
+						geoindex = req.app.locals.geoindex;
+						userindex = req.app.locals.userindex;
 					} else {
-						return res.render('publish', {
-							username: data[userindex].username,
-							userindex: userindex,
-							index: index,
-							zoom: zoom,
-							doc: data[userindex],
-							data: datarray,
-							pu: pu,
-							tl: data[userindex].tl,
-							lng: lng,
-							lat: lat,
-							info: info
-						})
-					}					
-				} else {
-					zoom = 3
+						for (var i in pu) {
+							for (var j in pu[i].publishers) {
+								if (pu[i].publishers[j].userindex === contentarray[j]) {
+									userindex = pu[i].publishers[j].userindex;
+									index = pu[i].content[j].index;
+									geoindex = pu[i].geoindex;
+								}
+							}
+							
+						}
+						req.app.locals.index = index;
+						req.app.locals.geoindex = geoindex;
+					}
+					Geotime.findOne({geoindex: geoindex, 'publishers.userid': pu._id}, function(errr, doc){
+						if (errr) {
+							return next(errr)
+						}
+						var zoom;
+						var lat;
+						var lng;
+						var info;
+						var index;
+						if (req.app.locals.index) {
+							index = req.app.locals.index;
+						} else {
+							index = 0;
+						}
+						var datarray = [];
+						for (var l in data) {
+							datarray.push(data[l])
+						}
+						if (req.app.locals.zoom) {
+							zoom = req.app.locals.zoom;
+							lat = req.app.locals.lat;
+							lng = req.app.locals.lng;
+							info = 'Refreshed';
 
-					if (data[userindex].content.length === 0) {
-						return next('That user has not added any content yet.')
-					} else {
-						Geotime.findOne({userid: pu._id},/* {content: {$elemMatch: {'properties.current': true}}},*/ function(er, doc){
-							if (er) {
-								return next(er)
-							}
-							console.log(current)
-							lat = doc.content[index].geometry.coordinates[1];
-							lng = doc.content[index].geometry.coordinates[0];
-							info = 'Intro';
-							var datarray = [];
-							for (var l in data) {
-								datarray.push(data[l])
-							}
 							if (req.isAuthenticated()) {
 								return res.render('publish', {
-									username: pu.username,
-									userindex: pu.userindex,
-									infowindow: 'intro',
+									geoindex: geoindex,
+									username: pu.publishers[userindex].username,
+									userindex: pu.publishers[userindex].userindex,
 									loggedin: req.app.locals.loggedin,
 									index: index,
 									zoom: zoom,
 									doc: doc,
 									data: datarray,
-									pu: pu,
-									tl: doc.tl,
+									pu: pu.publishers[userindex],
+									tl: data[geoindex].tl,
 									lng: lng,
 									lat: lat,
 									info: info
 								})
 							} else {
 								return res.render('publish', {
-									username: pu.username,
-									userindex: pu.userindex,
-									infowindow: 'intro',
+									geoindex: geoindex,
+									username: pu.publishers[userindex].username,
+									userindex: pu.publishers[userindex].userindex,
 									index: index,
 									zoom: zoom,
 									doc: doc,
 									data: datarray,
-									pu: pu,
-									tl: doc.tl,
+									pu: data[geoindex].publishers[userindex],
+									tl: data[geoindex].tl,
 									lng: lng,
 									lat: lat,
 									info: info
 								})
+							}					
+						} else {
+							zoom = 3
+
+							if (data[geoindex].content.length === 0) {
+								return next('That user has not added any content yet.')
+							} else {
+								lat = doc.content[index].geometry.coordinates[1];
+								lng = doc.content[index].geometry.coordinates[0];
+								info = 'Intro';
+								var datarray = [];
+								for (var l in data) {
+									datarray.push(data[l])
+								}
+								if (req.isAuthenticated()) {
+									return res.render('publish', {
+										geoindex: geoindex,
+										username: pu.publishers[userindex].username,
+										userindex: pu.publishers[userindex].userindex,
+										loggedin: req.app.locals.loggedin,
+										index: index,
+										zoom: zoom,
+										doc: doc,
+										data: datarray,
+										pu: pu.publishers[userindex],
+										tl: doc.tl,
+										lng: lng,
+										lat: lat,
+										info: info										
+									})
+								} else {
+									return res.render('publish', {
+										geoindex: geoindex,
+										username: pu.publishers[userindex].username,
+										userindex: pu.publishers[userindex].userindex,
+										index: index,
+										zoom: zoom,
+										doc: doc,
+										data: datarray,
+										pu: data[geoindex].publishers[userindex],
+										tl: data[geoindex].tl,
+										lng: lng,
+										lat: lat,
+										info: info
+									})
+								}
 							}
-							
-						})
-					}
+						}
+					})
 				}
-			} else {
-				return res.redirect('/home')				
 			}
-		})		
+		})
 	})		
 })
 
+router.get('/alldata', function(req, res, next){
+	Geotime.find({}, function(err, data){
+		if (err) {
+			return next(err)
+		}
+		console.log(data)
+		return res.json(data)
+	})
+})
 
 router.all('/mydata/*', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
@@ -682,20 +863,21 @@ router.all('/mydata/*', function(req, res, next){
 		var zoom = parseInt(outputPath.split('/')[3], 10)
 		var lat = outputPath.split('/')[4]
 		var lng = outputPath.split('/')[5]
-		var userindex = parseInt(outputPath.split('/')[2], 10)
+		var geoindex = parseInt(outputPath.split('/')[2], 10)
 		req.app.locals.zoom = zoom
 		req.app.locals.lat = lat
 		req.app.locals.lng = lng
-		Geotime.findOne({index: index}, function(err, doc){
+		Geotime.findOne({geoindex: geoindex}, function(err, doc){
 			if (err) {
 				return next(err)
 			}
-			return res.send(doc.username)
+			//0 will be conducting variable by tendril
+			return res.send(doc.publishers[0].username)
 		})
 		
 	} else {
-		var userindex = parseInt(outputPath.split('/')[2], 10)
-		Geotime.findOne({index: index}, function(err, doc){
+		var geoindex = parseInt(outputPath.split('/')[2], 10)
+		Geotime.findOne({geoindex: geoindex}, function(err, doc){
 			if (err) {
 				return next(err)
 			}
@@ -704,14 +886,15 @@ router.all('/mydata/*', function(req, res, next){
 	}
 });
 
-router.all('/focus/:id/:index/:zoom/:lat/:lng', function(req, res, next){
+router.all('/focus/:geoindex/:id/:index/:zoom/:lat/:lng', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
 	var id = req.params.id;
-	var index = req.params.index;
+	var geoindex = parseInt(req.params.geoindex, 10)
+	var index = parseInt(req.params.index, 10);
 	var zoom = req.params.zoom;
 	var lat = req.params.lat;
 	var lng = req.params.lng;
-	Geotime.findOne({content: {$elemMatch: {_id: id, index: index}}}, function(err, doc){
+	Geotime.findOne({geoindex: geoindex, content: {$elemMatch: {_id: id, index: index}}}, function(err, doc){
 		if (err) {
 			return next(err)
 		}
@@ -739,11 +922,12 @@ router.all('/focus/:id/:index/:zoom/:lat/:lng', function(req, res, next){
 						return next(er)
 					}
 					return res.render('publish', {
+						geoindex: geoindex,
 						index: index,
 						loggedin: req.app.locals.loggedin,
 						infowindow: 'doc',
-						username: doc.username,
-						userindex: doc.userindex,
+						username: pu.username,
+						userindex: pu.userindex,
 						zoom: zoom,
 						data: datarray,
 						doc: doc,
@@ -756,18 +940,24 @@ router.all('/focus/:id/:index/:zoom/:lat/:lng', function(req, res, next){
 				})
 				
 			} else {
-				return res.render('publish', {
-					index: index,
-					infowindow: 'doc',
-					username: doc.username,
-					userindex: doc.userindex,
-					zoom: zoom,
-					data: datarray,
-					doc: doc,
-					tl: doc.tl,
-					lat: lat,
-					lng: lng,
-					info: ':)'
+				Publisher.findOne({_id: id}, function(er, pu){
+					if (er) {
+						return next(er)
+					}
+					return res.render('publish', {
+						geoindex: geoindex,
+						index: index,
+						infowindow: 'doc',
+						username: pu.username,
+						userindex: data[geoindex].content[index].properties._id,
+						zoom: zoom,
+						data: datarray,
+						doc: doc,
+						tl: doc.tl,
+						lat: lat,
+						lng: lng,
+						info: ':)'
+					})
 				})
 			}			
 		})						
@@ -803,7 +993,7 @@ router.get('/doc/:id/:zoom/:lat/:lng', function(req, res, next){
 	req.app.locals.zoom = zoom;
 	req.app.locals.lat = lat;
 	req.app.locals.lng = lng;
-	Publisher.findOne({content: {$elemMatch: {_id: id}}}, function(err, doc){
+	Geotime.findOne({content: {$elemMatch: {_id: id}}}, function(err, doc){
 		if (err) {
 			return next(err)
 		}
@@ -821,6 +1011,7 @@ router.get('/doc/:id/:zoom/:lat/:lng', function(req, res, next){
 						return next(er)
 					}
 					return res.render('publish', {
+						geoindex: doc.geoindex,
 						index: 0,
 						infowindow: 'cv',
 						loggedin: req.app.locals.loggedin,
@@ -839,6 +1030,7 @@ router.get('/doc/:id/:zoom/:lat/:lng', function(req, res, next){
 				
 			} else {
 				return res.render('publish', {
+					geoindex: doc.geoindex,
 					index: 0,
 					infowindow: 'cv',
 					userindex: doc.userindex,
@@ -856,7 +1048,165 @@ router.get('/doc/:id/:zoom/:lat/:lng', function(req, res, next){
 	})
 })
 
-router.all('/gallery/:id/:index/:imgindex/:zoom/:lat/:lng', function(req, res, next){
+router.all('/gallery/:geoindex/:index/:imgindex/:zoom/:lat/:lng', function(req, res, next){
+	var outputPath = url.parse(req.url).pathname;
+	var geoindex = parseInt(req.params.geoindex, 10);
+	var imgindex = parseInt(req.params.imgindex, 10);
+	var zoom = req.params.zoom;
+	var lat = req.params.lat;
+	var lng = req.params.lng;
+	req.app.locals.zoom = zoom;
+	req.app.locals.lat = lat;
+	req.app.locals.lng = lng;
+	req.app.locals.imgindex = imgindex;
+	if (req.params.index.split('_')[0] === 'all') {
+		var index = parseInt(req.params.index.split('_')[1], 10)
+		
+		Geotime.findOne({geoindex: geoindex}, function(err, doc){
+			if (err) {
+				return next(err)
+			}
+			var img;
+			var type;
+			if (!doc.content[index].properties.media[imgindex].image) {
+				type = 'iframe'
+				img = doc.content[index].properties.media[imgindex].iframe
+			} else {
+				type = 'image'
+				img = doc.content[index].properties.media[imgindex].image
+			}
+			Geotime.find({}, function(error, data) {
+				if (error) {
+					return next(error)
+				}
+				var datarray = [];
+				for (var l in data) {
+					datarray.push(data[l])
+				}
+				if (req.isAuthenticated()) {
+					Publisher.findOne({_id: req.user._id}, function(er, pu){
+						if (er) {
+							return next(er)
+						}
+						return res.render('publish', {
+							geoindex: geoindex,
+							index: index,
+							infowindow: 'gallery',
+							loggedin: req.app.locals.loggedin,
+							userindex: doc.userindex,
+							username: doc.username,
+							zoom: zoom,
+							data: datarray,
+							pu: pu,
+							img: img,
+							imgindex: imgindex,
+							type: type,
+							doc: doc,
+							tl: doc.tl,
+							lat: lat,
+							lng: lng,
+							info: ':)'
+						})
+					})
+				} else {
+					return res.render('publish', {
+						geoindex: geoindex,
+						index: index,
+						infowindow: 'gallery',
+						userindex: doc.userindex,
+						username: doc.username,
+						zoom: zoom,
+						data: datarray,
+						img: img,
+						imgindex: imgindex,
+						type: type,
+						doc: doc,
+						tl: doc.tl,
+						lat: lat,
+						lng: lng,
+						info: ':)'
+					})
+				}				
+			})
+		})
+	} else {
+		index = parseInt(req.params.index, 10);
+		req.app.locals.index = index;
+		var key = 'content.$'
+		var query = {_id: id, content: {$elemMatch: {index: index}}}
+		//var projection = {key: 1}
+
+		Geotime.findOne({content: {$elemMatch: {_id: id, index: index}}}, function(err, doc){
+			if (err) {
+				return next(err)
+			}
+			var img;
+			var type;
+			if (!doc.content[index].properties.media[imgindex].image) {
+				type = 'iframe'
+				img = doc.content[index].properties.media[imgindex].iframe
+			} else {
+				type = 'image'
+				img = doc.content[index].properties.media[imgindex].image
+			}
+			Geotime.find({}, function(error, data) {
+				if (error) {
+					return next(error)
+				}
+				var datarray = [];
+				for (var l in data) {
+					datarray.push(data[l])
+				}
+				if (req.isAuthenticated()) {
+					Publisher.findOne({_id: req.user._id}, function(er, pu){
+						if (er) {
+							return next(er)
+						}
+						return res.render('publish', {
+							geoindex: geoindex,
+							index: index,
+							infowindow: 'doc',
+							loggedin: req.app.locals.loggedin,
+							userindex: doc.userindex,
+							username: doc.username,
+							zoom: zoom,
+							data: datarray,
+							pu: pu,
+							img: img,
+							imgindex: imgindex,
+							type: type,
+							doc: doc,
+							tl: doc.tl,
+							lat: lat,
+							lng: lng,
+							info: ':)'
+						})
+					})
+				} else {
+					return res.render('publish', {
+						geoindex: geoindex,
+						index: index,
+						infowindow: 'doc',
+						userindex: doc.userindex,
+						username: doc.username,
+						zoom: zoom,
+						data: datarray,
+						img: img,
+						imgindex: imgindex,
+						type: type,
+						doc: doc,
+						tl: doc.tl,
+						lat: lat,
+						lng: lng,
+						info: ':)'
+					})
+				}
+			})
+		})
+	}
+})
+
+router.all('/pugallery/:id/:index/:imgindex/:zoom/:lat/:lng', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
 	var id = req.params.id;
 	var imgindex = parseInt(req.params.imgindex, 10);
@@ -870,7 +1220,7 @@ router.all('/gallery/:id/:index/:imgindex/:zoom/:lat/:lng', function(req, res, n
 	if (req.params.index.split('_')[0] === 'all') {
 		var index = req.params.index.split('_')[1]
 		
-		Publisher.findOne({content: {$elemMatch: {_id: id}}}, function(err, doc){
+		Geotime.findOne({content: {$elemMatch: {_id: id}}}, function(err, doc){
 			if (err) {
 				return next(err)
 			}
@@ -1009,14 +1359,16 @@ router.all('/gallery/:id/:index/:imgindex/:zoom/:lat/:lng', function(req, res, n
 		})
 	}	
 })
-
-router.all('/publisherfocus/:userid/:zoom/:lat/:lng', function(req, res, next){
+//todo focus on one collaborator's projects like this (doc is Geotime[geoindex]):
+router.all('/geofocus/:geoindex/:userid/:zoom/:lat/:lng', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
+	console.log(outputPath)
 	var userid = req.params.userid;
 	var zoom = req.params.zoom;
 	var lat = req.params.lat;
 	var lng = req.params.lng;
-	Publisher.findOne({_id: userid}, function(err, doc){
+	var geoindex = parseInt(req.params.geoindex, 10)
+	Geotime.findOne({geoindex: geoindex}, function(err, doc){
 		if (err) {
 			return next(err)
 		}
@@ -1024,6 +1376,8 @@ router.all('/publisherfocus/:userid/:zoom/:lat/:lng', function(req, res, next){
 			if (error) {
 				return next(error)
 			}
+			//publisherfocus be more like
+			//'publishers.userid': userid
 			if (req.params.lat === null || req.params.lat === 'null') {
 				lat = doc.content[doc.content.length-1].geometry.coordinates[1]
 				lng = doc.content[doc.content.length-1].geometry.coordinates[0]
@@ -1044,7 +1398,7 @@ router.all('/publisherfocus/:userid/:zoom/:lat/:lng', function(req, res, next){
 						index: 0,
 						infowindow: 'publisher',
 						loggedin: req.app.locals.loggedin,
-						userindex: doc.userindex,
+						userindex: pu.userindex,
 						zoom: zoom,
 						data: datarray,
 						doc: doc,
@@ -1068,8 +1422,7 @@ router.all('/publisherfocus/:userid/:zoom/:lat/:lng', function(req, res, next){
 					lat: lat,
 					lng: lng,
 					info: ':)'
-				})			
-				
+				})							
 			}
 		})						
 	})	
@@ -1080,22 +1433,24 @@ router.all('/search/:term', function(req, res, next){
 	var term = req.params.term;
 	var regex = new RegExp(term);
 	console.log(regex)
-	Geotime.find({username: { $regex: regex }}, function(err, pu){
+	Geotime.find({name: { $regex: regex }}, function(err, data){
 		if (err) {
 			return next(err)
 		}
-		if (!err && pu === null) {
+		if (!err && data === null) {
 			return ('none')
 		}
-		return res.json(pu)
+		return res.json(data)
 	})
 })
 
 
 router.all('/api/*', ensureAuthenticated)
 
-router.get('/api/publish', function(req, res, next){
-	req.app.locals.username = req.user.username;
+router.get('/api/publish/:username', function(req, res, next){
+	var username = req.params.username;
+	console.log(username)
+	req.app.locals.username = username;
 	var arp = spawn('arp', ['-a']);
 	//console.log(arp.stdio[0].Pipe)
 	var mac;
@@ -1126,158 +1481,120 @@ router.get('/api/publish', function(req, res, next){
 					location = JSON.parse(JSON.stringify({ lng: data.location.lng, lat: data.location.lat }))
 					info = 'Publish something'
 				}
-				next(null, location, info)
+				next(null, location, username, info)
 			});
 		},
-		function(location, info, next){
+		function(location, username, info, next){
 			//su -
-			Publisher.findOne({userindex: 0}, function(error, pu){
+			Geotime.find({'publishers.username': username}, function(error, data){
 				if (error) {
 					next(error)
 				}
-				Geotime.findOne({index: 0}, function(err, doc){
+				Publisher.findOne({username: username}, function(err, pu){
 					if (err) {
 						next(err)
 					}
-					var tl;
+					req.app.locals.userId = pu._id
+					var geoindex;
 					var userindex;
-					if (doc.content.length === 0) {
-						console.log('no doc')
-						tl = [];
-						userindex = 0;
-						req.app.locals.index = 0
-						req.app.locals.userId = pu._id
-						var thisindex = 0
-						var content = [];
-						var dateend = moment().utc().format();
-						var current = true;
+					var tl;
+					var datarray = [];
+					for (var i in data) {
+						if (data[i].content.length === 0){
+							geoindex = data[i].geoindex;
+							userindex = 0;
+							req.app.locals.index = 0
+							
+							var thisindex = 0
+							//var content = [];
+							var dateend = moment().utc().format();
+							var current = true;
 
-						var entry = {
-							_id: req.app.locals.userId,
-							type: "Feature",
-							index: thisindex,
-							properties: {
-								_id: userindex,
-								user: req.app.locals.userId,
-								title: 'Home',
-								label: 'fa',
-								place: 'fa.bli.sh.d',
-								description: 'fa.bli.sh.d',
-								current: true,
-								link: {
-									url: 'https://github.com/tbushman/fa',
-									caption: 'Edit me'
+							var entry = {
+								_id: req.app.locals.userId,
+								type: "Feature",
+								index: thisindex,
+								properties: {
+									_id: pu.userindex,
+									user: req.app.locals.userId,
+									title: 'Home',
+									label: 'fa',
+									place: 'fa.bli.sh.d',
+									description: 'fa.bli.sh.d',
+									current: true,
+									link: {
+										url: 'https://github.com/tbushman/fa',
+										caption: 'Edit me'
+									},
+									time: {
+										begin: moment(pu.begin).utc().format(),
+										end: moment(pu.begin).add(1, 'years').utc().format()
+									},
+									media: []
 								},
-								time: {
-									begin: moment(pu.begin).utc().format(),
-									end: moment(pu.begin).add(1, 'years').utc().format()
-								},
-								media: []
-							},
-							geometry: {
-								type: 'Point',
-							    coordinates: [location.lng, location.lat]
+								geometry: {
+									type: 'Point',
+								    coordinates: [location.lng, location.lat]
+								}
 							}
+
+							var push = {$push:{}}
+							push.$push['content'] = entry
+							Geotime.findOneAndUpdate({geoindex: geoindex}, push, {safe: true, new: true}, function(err, doc){
+								if (err) {
+									next(err)
+								}
+								datarray.push(doc)
+							})
+
 						}
-						content.push(JSON.parse(JSON.stringify(entry)))
-						/*var geotime = new Geotime({
-							index: 0,
-							userid: req.app.locals.userId,
-							content: content,
-							tl: tl
-						})
-						geotime.save(function(err){*/
-						var set = {$set:{}}
-						set.$set['content'] = content
-						Geotime.findOneAndUpdate({index: 0}, set, {safe: true, new: true, upsert: true}, function(err, doc){
-							if (err) {
-								next(err)
-							}
-							var loc = {
-								lng: doc.content[0].geometry.coordinates[0],
-								lat: doc.content[0].geometry.coordinates[1]
-							}
-							next(null, pu, doc, loc, info, tl, userindex)
-						})
-
-					} else {
-						Publisher.findOne({username: req.app.locals.loggedin}, function(err, pub){
-							if (err) {
-								return next(err)
-							}
-							console.log(req.app.locals.loggedin)
-							userindex = pub.userindex;
-							tl = doc.tl;
-							next(null, pub, doc, location, info, tl, userindex)
-						})
-						
-					}				
+						datarray.push(data[i])
+					}
+					if (geoindex === undefined) {
+						userindex = data[0].publishers[0].userindex;
+						geoindex = 0;
+					}
+					next(null, info, username, userindex, geoindex)
 				})
+				
 			})
 			
 		},
-		function(pu, doc, loc, info, tl, userindex, next){
-			req.app.locals.userindex = userindex;
-			if (tl.length === 0) {
-				
-				var end = new Date(pu.end);
-				var end_year = end.getFullYear() + 1;
-			
-				var begin = new Date(pu.begin)
-				var begin_year = begin.getFullYear();
-				var num_years = end_year - begin_year;
-				var tl = []
-				for (var i = 0; i <= num_years; i++) {
-
-					tl.push({year: begin_year+i, months: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-				}
-				next(null, pu, doc, loc, info, tl, userindex)
-
-			} else {
-				next(null, pu, doc, loc, info, tl, userindex)
-			}
-			
-		},
-		function(pu, doc, loc, info, tl, userindex, next) {
-			if (userindex === 0) {
-				Geotime.findOneAndUpdate(
-					{index: 0},
-					{$set: {tl: tl}},
-					{safe: true, new: true},
-					function(error, doc){
-						if (error) {
-							console.log(error)
+		function(info, username, userindex, geoindex, next){
+			Geotime.findOne(
+				{geoindex: geoindex, 'publishers.username': username},
+				function(error, doc){
+					if (error) {
+						console.log(error)
+					}
+					Publisher.findOne({username: username}, function(err, pu){
+						if (err) {
+							return next(err)
 						}
 						Geotime.find({}, function(er, data){
 							if (er) {
 								return next(er)
 							}
 
-							next(null, pu, data, doc, info, userindex)															
+							next(null, data, doc, pu, info, userindex, geoindex)															
 						})
-						
-					}
-				)
-				
-			} else {
-				Geotime.find({}, function(er, data){
-					if (er) {
-						return next(er)
-					}
-
-					next(null, pu, data, doc, info, userindex)															
-				})
-				
-			}
-			
+					})
+				}
+			)
 		}
-	], function(err, pu, data, doc, info, userindex){
+	], function(err, data, doc, pu, info, userindex, geoindex){
 		if (err) {
 			return next(err)
 		}
 		var zoom;
 		var lat;
 		var lng;
+		var index;
+		if (req.app.locals.index) {
+			index = req.app.locals.index
+		} else {
+			index = 0
+		}
 		if (req.app.locals.zoom) {
 			zoom = req.app.locals.zoom
 			lat = req.app.locals.lat
@@ -1285,29 +1602,24 @@ router.get('/api/publish', function(req, res, next){
 			info = 'Refreshed'
 		} else {
 			zoom = 3
-			lat = doc.content[0].geometry.coordinates[1]
-			lng = doc.content[0].geometry.coordinates[0]
-		}
-		var index;
-		if (req.app.locals.index) {
-			index = req.app.locals.index
-		} else {
-			index = 0
+			lat = doc.content[index].geometry.coordinates[1]
+			lng = doc.content[index].geometry.coordinates[0]
 		}
 		var datarray = [];
 		for (var l in data) {
 			datarray.push(data[l])
 		}
 		return res.render('publish', {
+			geoindex: geoindex,
 			loggedin: req.app.locals.loggedin,
 			username: req.app.locals.username,
 			userindex: userindex,
-			index: doc.index,
-			zoom: zoom,
+			index: index,
 			data: datarray,
 			doc: doc,
-			tl: doc.tl,
 			pu: pu,
+			tl: doc.tl,
+			zoom: zoom,
 			lng: lng,
 			lat: lat,
 			info: info
@@ -1324,8 +1636,8 @@ router.all('/api/deletefeature/:index', function(req, res, next) {
 			if (err) {
 				return next(err)
 			}
-			Geotime.find({}, function(error, data){
-				if (error) {
+			Geotime.update({userid: req.app.locals.userId, 'content.index':{$gte:index}}, {$inc:{'content.$.index': -1}}, function(er, data){
+				if (er) {
 					return next(error)
 				}
 				var datarray = [];
@@ -1344,9 +1656,9 @@ router.all('/api/deletefeature/:index', function(req, res, next) {
 						zoom: 6,
 						data: datarray,
 						pu: pu,
-						tl: data[0].tl,
-						lng: doc.content[0].geometry.coordinates[0],
-						lat: doc.content[0].geometry.coordinates[1],
+						tl: data[data.length-1].tl,
+						lng: doc.content[index-1].geometry.coordinates[0],
+						lat: doc.content[index-1].geometry.coordinates[1],
 						info: 'Deleted'
 					})
 				})
@@ -1355,15 +1667,16 @@ router.all('/api/deletefeature/:index', function(req, res, next) {
 	)
 })
 
-router.get('/api/editcontent/:index', function(req, res, next){
+router.get('/api/editcontent/:geoindex/:index', function(req, res, next){
 	var index = parseInt(req.params.index, 10);
+	var geoindex = parseInt(req.params.geoindex, 10);
 	Publisher.findOne({_id: req.app.locals.userId}, function(error, pu){
 		if (error) {
 			return next(error)
 		}
 		var userindex = pu.userindex;
 		var userid = pu._id;
-		Geotime.findOne({userid: userid}, function(err, doc){
+		Geotime.findOne({geoindex: geoindex, 'publishers.userid': userid, 'content.index': index}, function(err, doc){
 			if (err) {
 				return next(err)
 			}

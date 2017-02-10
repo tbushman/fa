@@ -1,11 +1,17 @@
 extends layout
 block page
-	if (userindex)
+	if (geoindex)
 		- var menu = 'profile'
-		- var menudata = data[userindex]
+		- var menudata = data[geoindex]
 	else
 		- var menu = 'home'
-		- var menudata = doc
+		if (doc)
+			- var menudata = doc
+		else
+			if (data.length > 2)
+				- var menudata = data
+			else
+				- var menudata = data[0]
 block content
 	- var zfactor = 0.15 * zoom;
 	- var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -16,31 +22,31 @@ block content
 	if (tl)
 		if (username)
 			#arrows
-				if (parseInt(index, 10)+1 < menudata.content.length)
-					a.arrow.left(href="/focus/"+menudata.content[parseInt(index, 10)+1]._id+"/"+menudata.content[parseInt(index, 10)+1].index+"/"+zoom+"/"+lat+"/"+lng+"")
+				if (parseInt(index, 10)+1 < data[geoindex].content.length)
+					a.arrow.left(href="/focus/"+data[geoindex].content[parseInt(index, 10)+1].userid+"/"+data[geoindex].content[parseInt(index, 10)+1].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				else
-					a.arrow.left(href="/focus/"+menudata.content[0]._id+"/"+menudata.content[0].index+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.left(href="/focus/"+geoindex+"/"+data[geoindex].content[0].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				if (parseInt(index, 10)-1 < 0)
-					a.arrow.right(href="/focus/"+menudata.content[menudata.content.length-1]._id+"/"+menudata.content[menudata.content.length-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.right(href="/focus/"+geoindex+"/"+data[geoindex].content[data[geoindex].content.length-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 				else
-					a.arrow.right(href="/focus/"+menudata.content[parseInt(index, 10)-1]._id+"/"+menudata.content[parseInt(index, 10)-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.right(href="/focus/"+geoindex+"/"+parseInt(index, 10)-1+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 		else
 			#arrows
-				if (userindex-1 !== 0 && data[userindex-1])
-					a.arrow.left(href="/publisherfocus/"+data[userindex-1]._id+"/"+zoom+"/"+lat+"/"+lng+"")
+				if (geoindex-1 !== 0 && data[geoindex-1])
+					a.arrow.left(href="/geofocus/"+data[geoindex-1].publishers[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				else
-					a.arrow.left(href="/publisherfocus/"+data[data.length-1]._id+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.left(href="/geofocus/"+data[data.length-1].publishers[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
-				if (data[userindex+1])
-					a.arrow.right(href="/publisherfocus/"+data[userindex+1]._id+"/"+zoom+"/"+lat+"/"+lng+"")
+				if (data[geoindex+1])
+					a.arrow.right(href="/geofocus/"+data[geoindex+1].publishers[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 				else
-					a.arrow.right(href="/publisherfocus/"+data[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.right(href="/geofocus/"+data[0].publishers[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 		
 	#map
@@ -48,7 +54,7 @@ block content
 	if (tl)
 		#tl
 			if (username)
-				#wrapper(style="left: "+ (50-((new Date(menudata.content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(menudata.content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
+				#wrapper(style="left: "+ (50-((new Date(data[geoindex].content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(data[geoindex].content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
 
 					div.ms-Grid-col.ms-u-sm12
 						each year, i in tl
@@ -68,15 +74,15 @@ block content
 												span.ms-font-xs &nbsp
 				
 					div.ms-Grid-col.ms-u-sm12
-						each module, j in menudata.content
+						each module, j in data[geoindex].content
 							if (doc && j === doc.content[index].index)
-								a.module.block(href="/focus/"+module._id+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + module._id + "@" + module.index + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+								a.module.block(href="/focus/"+geoindex+"/"+module.properties._id+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + module._id + "@" + module.index + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 									span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{module.properties.title}
 							else
-								a.module.block(href="/focus/"+module._id+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + module._id + "@" + module.index + "", style="left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+								a.module.block(href="/focus/"+geoindex+"/"+module.properties._id+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + module._id + "@" + module.index + "", style="left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 				
 			else
-				#wrapper(style="left: "+ (50-((new Date(data[0].content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(data[0].content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
+				#wrapper(style="left: "+ 50-(1 *zoom*zfactor)*10 + "%")
 
 					div.ms-Grid-col.ms-u-sm12
 						each year, i in tl
@@ -96,20 +102,22 @@ block content
 												span.ms-font-xs &nbsp
 					div.ms-Grid-col.ms-u-sm12
 						each module, j in data
-							if (doc && j === doc.userindex)
-								a.module.block(href="/"+doc.username+"", title= module.username, name= module.givenName, id="" + module._id + "@" + module.userindex + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(module.begin).getFullYear() - tl[0].year + ((new Date(module.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.end).getFullYear() ) + ( ( new Date(module.end).getMonth() ) / 11 )) - (( new Date(module.begin).getFullYear() ) + ( ( new Date(module.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
-									span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{module.username}
-							else
-								a.module.block(href="/publisherfocus/"+module._id+"/"+6+"/"+lat+"/"+lng+"", title= module.username, name= module.givenName, id="" + module._id + "@" + module.userindex + "", style="left: "+ ((new Date(module.begin).getFullYear() - tl[0].year + ((new Date(module.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.end).getFullYear() ) + ( ( new Date(module.end).getMonth() ) / 11 )) - (( new Date(module.begin).getFullYear() ) + ( ( new Date(module.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+							each entry, k in module.content
+								if (doc && j === index)
+									a.module.block(href="/"+doc.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc._id + "@" + doc.publishers[0].userindex + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ 0 + "%; width: "+ ((doc.tl[doc.tl.length-1].year + 1) - (doc.tl[0].year + 1) ) * (zoom*zfactor)  * 10 + "%")
+										span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{doc.name}
+								else
+									a.module.block(href="/geofocus/"+module.geoindex+"/"+index+"/"+6+"/"+lat+"/"+lng+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + index + "", style="left: "+ ((new Date(module.content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.content[index].properties.time.end).getFullYear() ) + ( ( new Date(module.content[index].properties.time.end).getMonth() ) / 11 )) - (( new Date(module.content[index].properties.time.begin).getFullYear() ) + ( ( new Date(module.content[index].properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 	
 	if (infowindow && infowindow !== 'new' && infowindow !== 'edit')
 		div.ms-Overlay.ms-Overlay--dark.js-togglePanel
 		
 	script(type="text/javascript").
 		
-		var userindex = #{userindex}
-		userindex = parseInt(userindex, 10)
-		console.log(userindex)
+		//var index = #{index}
+		//var geoindex = #{geoindex}
+		index = parseInt(index, 10)
+		console.log(index)
 		$('#wrapper').draggable({
 			axis: "x"
 		});
@@ -207,13 +215,13 @@ block content
 			if ($(this).hasClass('gallery')) {
 				var windex = $(this).attr('name').split('@')[1];
 				var index = windex.split('all_')[1]
-				$.post('/gallery/'+userid+'/'+windex+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'', function(){
-					window.location.href = '/gallery/'+userid+'/'+windex+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'#scrollto_'+index+''
+				$.post('/gallery/'+geoindex+'/'+windex+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'', function(){
+					window.location.href = '/gallery/'+geoindex+'/'+windex+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'#scrollto_'+index+''
 				})
 			} else {
 				var index = #{index}
-				$.post('/gallery/'+userid+'/'+index+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'', function(){
-					window.location.href = '/gallery/'+userid+'/'+index+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+''
+				$.post('/gallery/'+geoindex+'/'+index+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'', function(){
+					window.location.href = '/gallery/'+geoindex+'/'+index+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+''
 				})
 			}
 		})
@@ -329,20 +337,20 @@ block content
 		}
 		var customIcon = L.icon({
 			iconUrl: '/images/buttonmarker.svg',
-			iconSize: [33, 33], // size of the icon
+			iconSize: [33, 33], 
 		});
 		var lMarker;
 		var medialength;
-		if (window.location.pathname.split('/')[1] === 'home' || window.location.pathname.split('/')[1] === 'publisherfocus') {
+		if (window.location.pathname.split('/')[1] === 'home' || window.location.pathname.split('/')[1] === 'geofocus') {
 			for (var i = 0; i < datalength; i++) {
 				getLayer(i, 0)
 			}
-			medialength = #{data[0].content[data[0].content.length-1].properties.media.length}
-			lMarker = L.marker([#{data[0].content[data[0].content.length-1].geometry.coordinates[1]}, #{data[0].content[data[0].content.length-1].geometry.coordinates[0]}], {icon: customIcon}).addTo(map);
+			medialength = #{doc.content[doc.content.length-1].properties.media.length}
+			lMarker = L.marker([#{doc.content[doc.content.length-1].geometry.coordinates[1]}, #{doc.content[doc.content.length-1].geometry.coordinates[0]}], {icon: customIcon}).addTo(map);
 
-			map.setView([#{data[0].content[data[0].content.length-1].geometry.coordinates[1]}, #{data[0].content[data[0].content.length-1].geometry.coordinates[0]}])
+			map.setView([#{doc.content[doc.content.length-1].geometry.coordinates[1]}, #{doc.content[doc.content.length-1].geometry.coordinates[0]}])
 		} else {
-			getLayer(userindex, 'all')
+			getLayer(geoindex, 'all')
 			if (window.location.pathname.split('/')[2] !== 'addfeature' && window.location.pathname.split('/')[2] !== 'editcontent') {
 				medialength = #{doc.content[index].properties.media.length}
 				
@@ -369,13 +377,13 @@ block content
 			var center = map.getCenter()
 			var lat = center.lat;
 			var lng = center.lng;
-			if (window.location.pathname.split('/')[1] === 'home' || window.location.pathname.split('/')[1] === 'publisherfocus') {
-				$.post('/zoom/'+userindex+'/'+zoom+'/'+lat+'/'+lng+'', function(data){
+			if (window.location.pathname.split('/')[1] === 'home' || window.location.pathname.split('/')[1] === 'geofocus') {
+				$.post('/zoom/'+geoindex+'/'+index+'/'+zoom+'/'+lat+'/'+lng+'', function(data){
 					window.location.href = '/'+data;
 					return false;
 				})
 			} else {
-				$.post('/mydata/'+userindex+'/'+zoom+'/'+lat+'/'+lng+'', function(data){
+				$.post('/mydata/'+geoindex+'/'+index+'/'+zoom+'/'+lat+'/'+lng+'', function(data){
 					window.location.href = '/'+data
 				})
 			}

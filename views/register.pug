@@ -27,6 +27,11 @@ block content
 					input#svgurl(type="hidden", name="svg")
 					input#avatarurl(type="hidden", name="avatar")
 					input#resumeurl(type="hidden", name="resume")
+					input#geoindex(type="hidden", name="geoindex")
+					div.ms-TextField
+						label.ms-Label Timeline
+						input.ms-TextField-field#name(type="text", name="name")
+					div.ms-Grid-col.ms-u-sm12#result
 					div.ms-TextField
 						label.ms-Label Name
 						input.ms-TextField-field(type="text", name="givenName")
@@ -61,6 +66,54 @@ block content
 				scrollTop: ~~$node.offset().top - 60
 			})
 		}
+		$('#name').autocomplete({
+			minLength: 2, 
+			source: function(request, response){
+				var term = request.term;
+				$.post('/search/'+term+'').done(function(result){
+					if (result === 'none') {
+						$('#result').html('')
+						$('#result').append('<p class="ms-font-l">Create new: </p><a href="#" class="create">'+term+'</a>')
+					} else {
+						$('#result').html('')
+						$('#result').append('<span class="ms-font-l">Create new: <p class="ms-fontWeight-semibold"><a href="#" class="create">'+term+'</a></p></span>')
+						if (result.length > 0) {
+							$('#result').append('<span class="ms-font-l">or link to an existing timeline: <ul></ul></span>')
+							for (var i in result) {
+								$('#result > span > ul').append('<li><a href="#" class="choose ms-fontWeight-semibold" id=""+result[i].name+"@"+result[i].index+"">'+result[i].name+'</a></li>')
+							}
+						}
+					}
+				})
+			}
+		})
+		$(document).on('click', '.create', function(e){
+			e.preventDefault()
+			var name = $(e.target).html();
+			var geoindex;
+			$.get('/alldata').done(function(err, response){
+				
+				
+				if (err) {
+					geoindex = 0;
+				} else {
+					geoindex = response.length;
+				}
+				$('#geoindex').val(geoindex);
+				$('#name').val(name);
+				$(e.target).append('<i class="ms-Icon ms-Icon--checkboxCheck"></i>');
+				
+			})
+			
+		})
+		$(document).on('click', '.choose', function(e){
+			e.preventDefault()
+			var name = $(this).attr('id').split('@')[0];
+			var geoindex = $(this).attr('id').split('@')[1];
+			$('#geoindex').val(geoindex);
+			$('#name').val(name);
+			$(e.target).append('<i class="ms-Icon ms-Icon--checkboxCheck"></i>');
+		})
 		$('#resume').change(function(e){
 			e.preventDefault();
 		    var dataurl = null;

@@ -260,7 +260,7 @@ if (infowindow === 'publisher')
 							!= md(doc.content[index].properties.description)
 						p
 						div.ms-Grid-col.ms-u-sm12#resize
-							a.ms-ListItem-image(onclick="window.location.href='/"+doc.username+"'")
+							a.ms-ListItem-image(onclick="window.location.href='/"+doc.name+"'")
 								img(src= doc.avatar)
 							div#hide
 								a(href="mailto:"+doc.email+"", target="_top")
@@ -381,7 +381,7 @@ if (infowindow === 'doc')
 													a(href= item.url, target="_blank")
 														i.ms-Icon.ms-Icon--link
 				if (loggedin)
-					a#editbutton(href="/api/editcontent/"+index+"")
+					a#editbutton(href="/api/editcontent/"+geoindex+"/"+index+"")
 						i.ms-Icon.ms-Icon--editBox
 					a#closepanel
 						i.ms-Icon.ms-Icon--x

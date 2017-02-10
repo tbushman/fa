@@ -33,9 +33,10 @@ passport.deserializeUser(function(id, done) {
     	//console.log(user);
     	if(!err) {
 			app.use('/publishers', express.static(path.join(__dirname, '../../pu/publishers')));
-			app.use('/publishers/fad/images', express.static(path.join(__dirname, '../../pu/publishers/fad/images')));
+			/*app.use('/publishers/fad/images', express.static(path.join(__dirname, '../../pu/publishers/fad/images')));
 			app.use('/publishers/fad/images/full', express.static(path.join(__dirname, '../../pu/publishers/fad/images/full')));
 			app.use('/publishers/fad/images/thumbs', express.static(path.join(__dirname, '../../pu/publishers/fad/images/thumbs')));
+			*/
 			done(null, user);
 		} else { 
 			done(err, null);
@@ -61,39 +62,6 @@ app.locals.moment = require('moment');
 app.locals.$ = require('jquery');
 app.locals.fs = require('fs');
 var marked = require('marked')
-/*app.use(function(req, res, next){
-	async.doWhilst(
-	function(){
-		fs.access('node_modules/marked/lib/marked.js', function(err) {
-			if (err) {
-				next(err)
-			} else {
-				var markedv2 = ('node_modules/marked/lib/marked.js').replace(/&lt/g, '<').replace(/&gt/g, '>');
-				fs.writeFile('node_modules/marked/lib/marked.js', JSON.stringify(markedv2, null, 4), 'utf8')
-				next(null)
-			}							
-		});		
-	},
-	function(cb) {
-		var check = require('node_modules/marked/lib/marked.js')
-		if (check !== null) {
-			//check_if_file_null
-			cb(null, check);
-		} else {
-			cb(null)
-		}
-	},
-	function(err, check) {
-		if (err) {
-			app.locals.marked = require('marked')
-			next(err);
-		}
-		app.locals.marked = check;
-		next(null)
-	}
-	)
-})
-*/
 app.locals.md = marked; 
 /*marked.setOptions({
   highlight: false

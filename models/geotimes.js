@@ -3,8 +3,18 @@ var mongoose = require('mongoose'),
 	Content = require('./content.js');
 
 var Geotime = new Schema({
-	index: Number,
-	userid: String,
+	name: {
+		type: String,
+		required: true,
+		trim: true
+	},
+	geoindex: Number,
+	publishers: [{
+		_id: String,
+		username: String,
+		userindex: Number,
+		begin: Date
+	}],
 	content: [ Content ],
 	tl: [{
 		year: Number,
