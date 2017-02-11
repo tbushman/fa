@@ -51,7 +51,7 @@ if (infowindow === 'new')
 				a#closepanel
 					i.ms-Icon.ms-Icon--x
 				div.ms-Grid-col.ms-u-sm12#sidepanel
-					form#form(enctype="multipart/form-data", method="POST", action="/api/addcontent/"+(index+1)+"", style="margin-bottom: 50px")
+					form#form(enctype="multipart/form-data", method="POST", action="/api/addcontent/"+geoindex+"/"+(index+1)+"", style="margin-bottom: 50px")
 						div.ms-TextField
 							label.ms-Label Title
 							input.ms-TextField-field(type="text", name="title")
@@ -113,7 +113,7 @@ if (infowindow === 'edit' || infowindow === 'layout')
 			div.ms-Grid-row.ms-Panel-contentInner
 				div.ms-Grid-col.ms-u-sm12#sidepanel
 					div#info.ms-font-s
-					form#form(enctype="multipart/form-data", method="POST", action="/api/editcontent/"+index+"", style="margin-bottom: 50px")
+					form#form(enctype="multipart/form-data", method="POST", action="/api/editcontent/"+geoindex+"/"+index+"", style="margin-bottom: 50px")
 						a#editform.ms-Button(href="#", role="button")
 							span.ms-Button-label Edit Feature details
 						

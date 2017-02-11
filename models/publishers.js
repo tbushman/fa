@@ -1,5 +1,11 @@
-var mongoose = require('mongoose'),
-    Schema = mongoose.Schema,
+var app = require('../app');
+var mongoose;
+if (process.env.NODE_ENV === 'production') {
+	mongoose = app.mongoose2
+} else {
+	mongoose = require('mongoose');
+}
+    var Schema = mongoose.Schema,
     passportLocalMongoose = require('passport-local-mongoose');
 
 var Publisher = new Schema({
@@ -23,6 +29,7 @@ var Publisher = new Schema({
 	doc: String
 	
 }, { collection: 'publishers' });
+Publisher.set('autoIndex', false);
 
 Publisher.plugin(passportLocalMongoose);
 

@@ -76,10 +76,10 @@ block content
 					div.ms-Grid-col.ms-u-sm12
 						each module, j in data[geoindex].content
 							if (doc && j === doc.content[index].index)
-								a.module.block(href="/focus/"+geoindex+"/"+module.properties._id+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + module._id + "@" + module.index + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+								a.module.block(href="/focus/"+geoindex+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + geoindex + "@" + module.index + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 									span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{module.properties.title}
 							else
-								a.module.block(href="/focus/"+geoindex+"/"+module.properties._id+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + module._id + "@" + module.index + "", style="left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+								a.module.block(href="/focus/"+geoindex+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + geoindex + "@" + module.index + "", style="left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 				
 			else
 				#wrapper(style="left: "+ 50-(1 *zoom*zfactor)*10 + "%")
@@ -104,18 +104,18 @@ block content
 						each module, j in data
 							each entry, k in module.content
 								if (doc && j === index)
-									a.module.block(href="/"+doc.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc._id + "@" + doc.publishers[0].userindex + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ 0 + "%; width: "+ ((doc.tl[doc.tl.length-1].year + 1) - (doc.tl[0].year + 1) ) * (zoom*zfactor)  * 10 + "%")
+									a.module.block(href="/"+doc.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc.geoindex + "@" + j + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ 0 + "%; width: "+ ((doc.tl[doc.tl.length-1].year + 1) - (doc.tl[0].year + 1) ) * (zoom*zfactor)  * 10 + "%")
 										span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{doc.name}
 								else
-									a.module.block(href="/geofocus/"+module.geoindex+"/"+index+"/"+6+"/"+lat+"/"+lng+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + index + "", style="left: "+ ((new Date(module.content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.content[index].properties.time.end).getFullYear() ) + ( ( new Date(module.content[index].properties.time.end).getMonth() ) / 11 )) - (( new Date(module.content[index].properties.time.begin).getFullYear() ) + ( ( new Date(module.content[index].properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+									a.module.block(href="/geofocus/"+module.geoindex+"/"+index+"/"+6+"/"+lat+"/"+lng+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + entry.index + "", style="left: "+ ((new Date(module.content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.content[index].properties.time.end).getFullYear() ) + ( ( new Date(module.content[index].properties.time.end).getMonth() ) / 11 )) - (( new Date(module.content[index].properties.time.begin).getFullYear() ) + ( ( new Date(module.content[index].properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 	
 	if (infowindow && infowindow !== 'new' && infowindow !== 'edit')
 		div.ms-Overlay.ms-Overlay--dark.js-togglePanel
 		
 	script(type="text/javascript").
 		
-		//var index = #{index}
-		//var geoindex = #{geoindex}
+		var index = #{index}
+		var geoindex = #{geoindex}
 		index = parseInt(index, 10)
 		console.log(index)
 		$('#wrapper').draggable({
@@ -307,7 +307,7 @@ block content
 							    weight: 2,
 							    opacity: 1,
 							    fillOpacity: 0.8,
-								className: feature._id+"@"+feature.index
+								className: feature.geoindex+"@"+feature.index
 							};
 							return L.circleMarker(latlng, geojsonMarkerOptions);
 						}
@@ -327,7 +327,7 @@ block content
 							    weight: 2,
 							    opacity: 1,
 							    fillOpacity: 0.8,
-								className: feature._id+"@"+feature.index
+								className: feature.geoindex+"@"+feature.index
 							};
 							return L.circleMarker(latlng, geojsonMarkerOptions);
 						}
@@ -350,7 +350,7 @@ block content
 
 			map.setView([#{doc.content[doc.content.length-1].geometry.coordinates[1]}, #{doc.content[doc.content.length-1].geometry.coordinates[0]}])
 		} else {
-			getLayer(geoindex, 'all')
+			getLayer(#{geoindex}, 'all')
 			if (window.location.pathname.split('/')[2] !== 'addfeature' && window.location.pathname.split('/')[2] !== 'editcontent') {
 				medialength = #{doc.content[index].properties.media.length}
 				
@@ -453,16 +453,16 @@ block content
 								var classi = $('#map').find($("path[d^='"+grid[i][j]+"']")[k]).attr('class');
 								var idi = classi.split(' ')[0]
 								console.log(classi)
-								var useridi = idi.split('@')[0]
+								var geoindi = idi.split('@')[0]
 								var indexi = idi.split('@')[1];
 								$.ajax({
-									url: '/list/'+useridi+'/'+indexi+'/'+zoom+'/'+lat+'/'+lng+'',
+									url: '/list/'+geoindi+'/'+indexi+'/'+zoom+'/'+lat+'/'+lng+'',
 									processData: false,
 									contentType: false,
 									type: 'POST',
 									success: function(data){
 										var thisclass = 
-										$('.list > .ms-Grid > .ms-Panel-contentInner').append('<a href="/focus/'+data._id+'/'+data.index+'/6/null/null" class="ms-Grid-col ms-u-sm12"><span class="ms-font-m">'+data.properties.label+'</span></a>')
+										$('.list > .ms-Grid > .ms-Panel-contentInner').append('<a href="/focus/'+geoindi+'/'+indexi+'/6/null/null" class="ms-Grid-col ms-u-sm12"><span class="ms-font-m">'+data.properties.label+'</span></a>')
 										map.setView([data.geometry.coordinates[1], data.geometry.coordinates[0]])
 										lMarker.remove()
 									}
@@ -498,8 +498,8 @@ block content
 					var index = id.split('@')[1]
 					console.log(id)
 
-					$.post('/focus/'+userid+'/'+index+'/'+6+'/'+lat+'/'+lng+'', function(){
-						window.location.href = '/focus/'+userid+'/'+index+'/'+6+'/'+lat+'/'+lng+''
+					$.post('/focus/'+geoindex+'/'+index+'/'+6+'/'+lat+'/'+lng+'', function(){
+						window.location.href = '/focus/'+geoindex+'/'+index+'/'+6+'/'+lat+'/'+lng+''
 					})
 				}
 				

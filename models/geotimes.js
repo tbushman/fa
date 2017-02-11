@@ -21,6 +21,7 @@ var Geotime = new Schema({
 		months: [] 
 	}]
 }, { collection: 'fad' });
+Geotime.set('autoIndex', false);
 
 module.exports = mongoose.model('Geotime', Geotime);
 

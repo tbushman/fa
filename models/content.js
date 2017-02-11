@@ -2,7 +2,6 @@ var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
 var Content = new Schema({
-	_id: String,
 	type: String,
 	index: Number,
 	properties: {
@@ -40,4 +39,5 @@ var Content = new Schema({
 	}
 })
 
+Content.set('autoIndex', false);
 module.exports = Content;

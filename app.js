@@ -132,10 +132,25 @@ app.use(function (err, req, res) {
   });
 });
 
+/**
+* Mongoose connections
+*/
+
 var uri = process.env.DEVDB;
 
-mongoose.connect(uri/*, {authMechanism: 'ScramSHA1'}*/);
+mongoose.connect(uri);
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
+
+module.exports.mongoose = mongoose;
+
+if (app.get('env') === 'production') {
+	var mongoose2 = require('mongoose').connect('mongodb://localhost/pu', {authMechanism: 'ScramSHA1'})	
+	var db2 = mongoose2.connection;
+	db2.on('error', console.error.bind(console, 'connection error:'))
+	module.exports.mongoose2 = mongoose2
+}
+
+
 
 module.exports = app;
