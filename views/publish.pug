@@ -20,40 +20,42 @@ block content
 		include gallery.pug
 		
 	if (tl)
-		if (username)
+		if (index)
+			- var ind = parseInt(index, 10)
 			#arrows
-				if (parseInt(index, 10)+1 < data[geoindex].content.length)
-					a.arrow.left(href="/focus/"+data[geoindex].content[parseInt(index, 10)+1].userid+"/"+data[geoindex].content[parseInt(index, 10)+1].index+"/"+zoom+"/"+lat+"/"+lng+"")
+				if (ind+1 < data[geoindex].content.length)
+					a.arrow.left(href="/focus/"+geoindex+"/"+(ind+1)+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				else
-					a.arrow.left(href="/focus/"+geoindex+"/"+data[geoindex].content[0].index+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.left(href="/focus/"+geoindex+"/"+0+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				if (parseInt(index, 10)-1 < 0)
 					a.arrow.right(href="/focus/"+geoindex+"/"+data[geoindex].content[data[geoindex].content.length-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 				else
-					a.arrow.right(href="/focus/"+geoindex+"/"+parseInt(index, 10)-1+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.right(href="/focus/"+geoindex+"/"+(ind-1)+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 		else
+			- var geoind = parseInt(geoindex, 10)
 			#arrows
-				if (geoindex-1 !== 0 && data[geoindex-1])
-					a.arrow.left(href="/geofocus/"+data[geoindex-1].publishers[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
+				if (geoindex+1 < data.length)
+					a.arrow.left(href="/geofocus/"+(geoind + 1)+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				else
-					a.arrow.left(href="/geofocus/"+data[data.length-1].publishers[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.left(href="/geofocus/"+0+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
-				if (data[geoindex+1])
-					a.arrow.right(href="/geofocus/"+data[geoindex+1].publishers[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
+				if (geoindex-1 < 0)
+					a.arrow.right(href="/geofocus/"+data[data.length-1].geoindex+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 				else
-					a.arrow.right(href="/geofocus/"+data[0].publishers[0]._id+"/"+zoom+"/"+lat+"/"+lng+"")
+					a.arrow.right(href="/geofocus/"+(geoind - 1)+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 		
 	#map
 	
 	if (tl)
 		#tl
-			if (username)
+			if (index)
 				#wrapper(style="left: "+ (50-((new Date(data[geoindex].content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(data[geoindex].content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
 
 					div.ms-Grid-col.ms-u-sm12
@@ -82,7 +84,7 @@ block content
 								a.module.block(href="/focus/"+geoindex+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + geoindex + "@" + module.index + "", style="left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 				
 			else
-				#wrapper(style="left: "+ 50-(1 *zoom*zfactor)*10 + "%")
+				#wrapper(style="left: "+ (50-((new Date(data[geoindex].content[0].properties.time.begin).getFullYear() - tl[0].year + ((new Date(data[geoindex].content[0].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
 
 					div.ms-Grid-col.ms-u-sm12
 						each year, i in tl
@@ -103,11 +105,11 @@ block content
 					div.ms-Grid-col.ms-u-sm12
 						each module, j in data
 							each entry, k in module.content
-								if (doc && j === index)
-									a.module.block(href="/"+doc.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc.geoindex + "@" + j + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ 0 + "%; width: "+ ((doc.tl[doc.tl.length-1].year + 1) - (doc.tl[0].year + 1) ) * (zoom*zfactor)  * 10 + "%")
+								if (doc && k === entry.index)
+									a.module.block(href="/"+doc.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc.geoindex + "@" + j + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 										span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{doc.name}
 								else
-									a.module.block(href="/geofocus/"+module.geoindex+"/"+index+"/"+6+"/"+lat+"/"+lng+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + entry.index + "", style="left: "+ ((new Date(module.content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.content[index].properties.time.end).getFullYear() ) + ( ( new Date(module.content[index].properties.time.end).getMonth() ) / 11 )) - (( new Date(module.content[index].properties.time.begin).getFullYear() ) + ( ( new Date(module.content[index].properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+									a.module.block(href="/geofocus/"+module.geoindex+"/"+6+"/"+lat+"/"+lng+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + entry.index + "", style="left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 	
 	if (infowindow && infowindow !== 'new' && infowindow !== 'edit')
 		div.ms-Overlay.ms-Overlay--dark.js-togglePanel
@@ -607,7 +609,7 @@ block content
 
 					fd.append("img", file);
 					
-					uploadurl = '/api/uploadmedia/'+index+'/'+counter+'/pdf';
+					uploadurl = '/api/uploadmedia/'+geoindex+'/'+index+'/'+counter+'/pdf';
 
 					console.log(uploadurl)
 					$.ajax({
@@ -710,7 +712,7 @@ block content
 
 				fd.append("img", blob);
 				
-				uploadurl = '/api/uploadmedia/'+index+'/'+counter+'/jpeg';
+				uploadurl = '/api/uploadmedia/'+geoindex+'/'+index+'/'+counter+'/jpeg';
 
 				console.log(blob)
 				console.log(uploadurl)

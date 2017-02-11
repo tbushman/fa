@@ -34,26 +34,32 @@ dotenv.load();
 //Todo: user remove triggers userindex $inc -1
 var storage = multer.diskStorage({
 	destination: function (req, file, cb) {
-		var p = ''+publishers+'/pu/publishers/fad/'+ req.user.username +'/images/full/'+req.params.index+'';		
-		var q = ''+publishers+'/pu/publishers/fad/'+ req.user.username +'/images/thumbs/'+req.params.index+'';
-		
-		fs.access(p, function(err) {
-			if (err && err.code === 'ENOENT') {
-				mkdirp(p, function(err){
-					if (err) {
-						console.log("err", err);
-					}
-					mkdirp(q, function(err){
+		Geotime.findOne({geoindex: parseInt(req.params.geoindex)}, function(err, doc){
+			if (err) {
+				cb(err)
+			}
+			var p = ''+publishers+'/pu/publishers/fad/'+ doc.name +'/images/full/'+req.params.index+'';		
+			var q = ''+publishers+'/pu/publishers/fad/'+ doc.name +'/images/thumbs/'+req.params.index+'';
+
+			fs.access(p, function(err) {
+				if (err && err.code === 'ENOENT') {
+					mkdirp(p, function(err){
 						if (err) {
 							console.log("err", err);
 						}
-    					cb(null, p)
+						mkdirp(q, function(err){
+							if (err) {
+								console.log("err", err);
+							}
+	    					cb(null, p)
+						})
 					})
-				})
-			} else {
-				cb(null, p)
-			}
+				} else {
+					cb(null, p)
+				}
+			})
 		})
+		
   	},
 	filename: function (req, file, cb) {
 		if (req.params.type === 'pdf') {
@@ -303,6 +309,26 @@ router.get('/register', function(req, res) {
     return res.render('register', { } );
 });
 
+router.post('/importprofile', upload.array(), function(req, res, next) {
+	var link = {
+		name: req.body.name,
+		geoindex: parseInt(req.body.geoindex, 10)
+	}
+	passport.authenticate('local')(req, res, function () {
+		Publisher.findOne({username: req.body.username}, function(error, pu){
+			if (error) {
+				return next(error)
+			}
+			updateGeotime(link.geoindex, link.name, pu, function(er, doc){
+				if (er) {
+					return next(er)
+				}
+				req.app.locals.geoindex = doc.geoindex;
+				return res.redirect('/api/publish/'+req.body.username+'')
+			})
+		})		
+	});
+})
 
 router.post('/register', upload.array()/*, registerPublisher*/, function(req, res, next) {
 	var link = {
@@ -738,12 +764,12 @@ router.get('/:name', ensureGt, function(req, res, next){
 				var index;
 				//to identify content inside Geotime.
 				//reference to collaborators array via userindex ...
-				if (req.app.locals.index) {
+				/*if (req.app.locals.index) {
 					index = req.app.locals.index;
-				} else {
+				} else {*/
 					index = 0;
 					req.app.locals.index = 0;
-				}
+				//}
 				if (req.app.locals.geoindex) {
 					geoindex = req.app.locals.geoindex;
 					userindex = req.app.locals.userindex;
@@ -874,15 +900,6 @@ router.get('/:name', ensureGt, function(req, res, next){
 			}
 		}
 	})
-	/*Geotime.findOne({name: req.params.name}, function(err, doc){
-		if (err) {
-			return next(err)
-		}
-		
-		//gt is check for content published
-		req.app.locals.geoindex = doc.geoindex;//doc.publishers...
-		return next()
-	})*/
 }) 
 //condom
 router.get('/api/publisherdata/:username', ensureUser, function (req, res, next) {
@@ -935,6 +952,74 @@ router.all('/mydata/*', function(req, res, next){
 	}
 });
 
+router.all('/geofocus/:geoindex/:zoom/:lat/:lng', function(req, res, next){
+	var geoindex = parseInt(req.params.geoindex, 10)
+	var zoom = parseInt(req.params.zoom, 10)
+	var lat = req.params.lat;
+	var lng = req.params.lng;
+	Geotime.findOne({geoindex: geoindex}, function(err, doc){
+		if (err) {
+			return next(err)
+		}
+		Geotime.find({}, function(error, data) {
+			if (error) {
+				return next(error)
+			}
+			if (req.params.lat === null || req.params.lat === 'null') {
+				lat = doc.content[0].geometry.coordinates[1]
+				lng = doc.content[0].geometry.coordinates[0]
+			}
+			req.app.locals.zoom = zoom;
+			req.app.locals.lat = lat;
+			req.app.locals.lng = lng;
+			req.app.locals.index = 0;
+			var datarray = [];
+			for (var l in data) {
+				datarray.push(data[l])
+			}
+			
+			if (req.isAuthenticated()) { 
+				//if (req.user._id === userid) {
+				Publisher.findOne({_id: req.user._id}, function(er, pu){
+					if (er) {
+						return next(er)
+					}
+					return res.render('publish', {
+						geoindex: geoindex,
+						loggedin: req.app.locals.loggedin,
+						infowindow: 'doc',
+						username: doc.publishers[0].username,
+						userindex: doc.publishers[0].userindex,
+						zoom: zoom,
+						data: datarray,
+						doc: doc,
+						pu: pu,
+						tl: doc.tl,
+						lat: lat,
+						lng: lng,
+						info: ':)'
+					})
+				})
+				
+			} else {
+				return res.render('publish', {
+					geoindex: geoindex,
+					infowindow: 'doc',
+					username: doc.publishers[0].username,
+					userindex: 0,//data[geoindex].content[index].properties._id,
+					zoom: zoom,
+					data: datarray,
+					doc: doc,
+					tl: doc.tl,
+					lat: lat,
+					lng: lng,
+					info: ':)'
+				})
+			}			
+		})						
+	})
+})
+
 router.all('/focus/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
 	var id = req.params.id;
@@ -943,10 +1028,11 @@ router.all('/focus/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 	var zoom = req.params.zoom;
 	var lat = req.params.lat;
 	var lng = req.params.lng;
-	Geotime.findOne({geoindex: geoindex, content: {index: index}}, function(err, doc){
+	Geotime.findOne({geoindex: geoindex, 'content.index': index}, function(err, doc){
 		if (err) {
 			return next(err)
 		}
+		//console.log(doc)
 		Geotime.find({}, function(error, data) {
 			if (error) {
 				return next(error)
@@ -975,13 +1061,13 @@ router.all('/focus/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 						index: index,
 						loggedin: req.app.locals.loggedin,
 						infowindow: 'doc',
-						username: pu.username,
-						userindex: pu.userindex,
+						username: doc.publishers[0].username,
+						userindex: doc.publishers[0].userindex,
 						zoom: zoom,
 						data: datarray,
-						doc: data[geoindex],
+						doc: doc,
 						pu: pu,
-						tl: data[geoindex].tl,
+						tl: doc.tl,
 						lat: lat,
 						lng: lng,
 						info: ':)'
@@ -993,12 +1079,12 @@ router.all('/focus/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 					geoindex: geoindex,
 					index: index,
 					infowindow: 'doc',
-					username: data[geoindex].publishers[0].username,
+					username: doc.publishers[0].username,
 					userindex: 0,//data[geoindex].content[index].properties._id,
 					zoom: zoom,
 					data: datarray,
-					doc: data[geoindex],
-					tl: data[geoindex].tl,
+					doc: doc,
+					tl: doc.tl,
 					lat: lat,
 					lng: lng,
 					info: ':)'
@@ -1808,7 +1894,7 @@ router.post('/api/editcontent/:geoindex/:index', upload.array(), function(req, r
 						if (thisbody !== '/images/publish_logo_sq.svg' && thisbody.split('').length > 100) {
 							//fs.writefile
 							var thumbbuf = new Buffer(body[thiskey], 'base64'); // decode
-							var thumburl = ''+publishers+'/pu/publishers/fad/'+ req.app.locals.username +'/images/thumbs/'+index+'/thumb_'+count+'.jpeg'
+							var thumburl = ''+publishers+'/pu/publishers/fad/'+ doc.name +'/images/thumbs/'+index+'/thumb_'+count+'.jpeg'
 							thumburls.push(thumburl.replace('/var/www/pu', '').replace('/Users/traceybushman/Documents/pu.bli.sh/pu', ''))
 							count++;
 							fs.writeFile(thumburl, thumbbuf, function(err) {
@@ -1832,10 +1918,24 @@ router.post('/api/editcontent/:geoindex/:index', upload.array(), function(req, r
 						count++;
 					}
 				}
-				next(null, geoindex, userindex, index, thumburls, imgs, body)
+				next(null, doc, geoindex, userindex, index, thumburls, imgs, body)
 			})
 		},
-		function(geoindex, userindex, index, thumburls, imgs, body, next) {
+		function(doc, geoindex, userindex, index, thumburls, imgs, body, next) {
+			var begin, end;
+			if (!body.datebegin) {
+				if (doc.content[index].properties.time.begin === null) {
+					begin = moment().subtract(1, 'year').utc().format()
+					end = moment().utc().format()
+				} else {
+					begin = doc.content[index].properties.time.begin;
+					end = doc.content[index].properties.time.end
+				}
+			
+			} else {
+				begin = body.datebegin;
+				end = body.dateend;
+			}
 			var entry = {
 				type: "Feature",
 				index: index,
@@ -1851,8 +1951,8 @@ router.post('/api/editcontent/:geoindex/:index', upload.array(), function(req, r
 						caption: body.linkcaption
 					},
 					time: {
-						begin: body.datebegin,
-						end: body.dateend
+						begin: begin,
+						end: end
 					},
 					media: []
 				},
@@ -1999,7 +2099,7 @@ router.get('/api/addfeature/:geoindex/:zoom/:lat/:lng', function(req, res, next)
 })
 
 
-router.all('/api/uploadmedia/:index/:counter/:type', uploadmedia.single('img'), function(req, res, next){
+router.all('/api/uploadmedia/:geoindex/:index/:counter/:type', uploadmedia.single('img'), function(req, res, next){
 	if (req.file.path.split('.').indexOf('pdf') !== -1) {
 		console.log('pdf hea')
 		var pdfname = req.file.path.split('/').pop();
@@ -2016,7 +2116,8 @@ router.all('/api/uploadmedia/:index/:counter/:type', uploadmedia.single('img'), 
 				myPdf = 'data:' + rep.headers['content-type'] + ';base64,' + new Buffer(body).toString('base64');
 			}
 			fs.writeFile(bloburl, JSON.stringify(myPdf), 'utf8');
-			return res.send(bloburl);
+			//return res.send(bloburl)
+			return res.send(req.file.path);
 		});
 		
 	} else {
@@ -2118,7 +2219,7 @@ router.post('/api/addcontent/:geoindex/:index', upload.array(), function(req, re
 						if (thisbody !== '/images/publish_logo_sq.svg' && thisbody.split('').length > 100) {
 							//fs.writefile
 							var thumbbuf = new Buffer(body[thiskey], 'base64'); // decode
-							var thumburl = ''+publishers+'/pu/publishers/fad/'+ req.app.locals.username +'/images/thumbs/'+index+'/thumb_'+count+'.jpeg'
+							var thumburl = ''+publishers+'/pu/publishers/fad/'+ doc.name +'/images/thumbs/'+index+'/thumb_'+count+'.jpeg'
 							thumburls.push(thumburl.replace('/var/www/pu', '').replace('/Users/traceybushman/Documents/pu.bli.sh/pu', ''))
 							count++;
 							fs.writeFile(thumburl, thumbbuf, function(err) {
@@ -2142,10 +2243,19 @@ router.post('/api/addcontent/:geoindex/:index', upload.array(), function(req, re
 						count++;
 					}
 				}
-				next(null, geoindex, userindex, index, thumburls, imgs, body)
+				next(null, doc, geoindex, userindex, index, thumburls, imgs, body)
 			})
 		},
-		function(geoindex, userindex, index, thumburls, imgs, body, next) {
+		function(doc1, geoindex, userindex, index, thumburls, imgs, body, next) {
+			var begin, end;
+			if (!body.datebegin) {
+				begin = doc1.content[index-1].properties.time.begin;
+				end = doc1.content[index-1].properties.time.end
+			
+			} else {
+				begin = body.datebegin;
+				end = body.dateend;
+			}
 			var entry = {
 				type: "Feature",
 				index: index,
@@ -2161,8 +2271,8 @@ router.post('/api/addcontent/:geoindex/:index', upload.array(), function(req, re
 						caption: body.linkcaption
 					},
 					time: {
-						begin: body.datebegin,
-						end: body.dateend
+						begin: begin,
+						end: end
 					},
 					media: []
 				},

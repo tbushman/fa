@@ -10,7 +10,25 @@ block content
 				a.ms-Button.ms-Button--primary(href="/login", role="button", ariaDescription="Log in")
 					span.ms-Button-label Log in
 				hr
-				p.ms-font-xl Register
+				p.ms-font-xl Have a pu.bli.sh profile?
+				p.ms-font-l Use your pu.bli.sh profile
+				form#importprofile(enctype="multipart/form-data", method="POST", action="/importprofile", style="margin-bottom: 50px")
+					input#tlgeoindex(type="hidden", name="geoindex")
+					div.ms-TextField
+						label.ms-Label Timeline
+						input.ms-TextField-field#tlname(type="text", name="name")
+					div.ms-Grid-col.ms-u-sm12#tlresult
+					div.ms-TextField
+						label.ms-Label Username
+						input.ms-TextField-field(type="text", name="username", maxlength="40")
+					div.ms-TextField
+						label.ms-Label Password
+						input.ms-TextField-field(type="password", name="password")
+					p
+					a.ms-Button.ms-Button--primary#importbutton(role="button", ariaDescription="Import profile")
+						span.ms-Button-label Import
+				hr
+				p.ms-font-xl Register				
 				p.ms-font-l Set avatar
 				div.ms-Grid-row
 					div.ms-Grid-col.ms-u-sm9.ms-u-xl11
@@ -50,10 +68,16 @@ block content
 						label.ms-Label Password
 						input.ms-TextField-field(type="password", name="password")
 					p
-					button.ms-Button.ms-Button--primary(type="submit", ariaDescription="Register")
+					a.ms-Button.ms-Button--primary#registerbutton(role="button", ariaDescription="Register")
 						span.ms-Button-label Register
 				#info #{info}
 	script(type="text/javascript").
+		$(document).on('click', '#importbutton', function(){
+			$('#importprofile').submit()
+		})
+		$(document).on('click', '#registerbutton', function(){
+			$('#form').submit()
+		})
 		$('#input_date').pickadate({
 			selectYears: 80,
 			selectMonths: true,
@@ -66,6 +90,27 @@ block content
 				scrollTop: ~~$node.offset().top - 60
 			})
 		}
+		$('#tlname').autocomplete({
+			minLength: 2, 
+			source: function(request, response){
+				var term = request.term;
+				$.post('/search/'+term+'').done(function(result){
+					if (result === 'none') {
+						$('#tlresult').html('')
+						$('#tlresult').append('<p class="ms-font-l">Create new: </p><a href="#" class="create">'+term+'</a>')
+					} else {
+						$('#tlresult').html('')
+						$('#tlresult').append('<span class="ms-font-l">Create new: <p class="ms-fontWeight-semibold"><a href="#" class="create">'+term+'</a></p></span>')
+						if (result.length > 0) {
+							$('#tlresult').append('<span class="ms-font-l">or link to an existing timeline: <ul></ul></span>')
+							for (var i in result) {
+								$('#tlresult > span > ul').append('<li><a href="#" class="choose ms-fontWeight-semibold" id=""+result[i].name+"@"+result[i].index+"">'+result[i].name+'</a></li>')
+							}
+						}
+					}
+				})
+			}
+		})
 		$('#name').autocomplete({
 			minLength: 2, 
 			source: function(request, response){
@@ -100,6 +145,7 @@ block content
 					geoindex = response.length;
 				}
 				$('#geoindex').val(geoindex);
+				$('#tlgeoindex').val(geoindex);
 				$('#name').val(name);
 				$(e.target).append('<i class="ms-Icon ms-Icon--checkboxCheck"></i>');
 				
@@ -111,6 +157,7 @@ block content
 			var name = $(this).attr('id').split('@')[0];
 			var geoindex = $(this).attr('id').split('@')[1];
 			$('#geoindex').val(geoindex);
+			$('#tlgeoindex').val(geoindex);
 			$('#name').val(name);
 			$(e.target).append('<i class="ms-Icon ms-Icon--checkboxCheck"></i>');
 		})
