@@ -1,8 +1,9 @@
 extends layout
 block page
-	if (geoindex)
+	if (index)
 		- var menu = 'profile'
 		- var menudata = data[geoindex]
+		
 	else
 		- var menu = 'home'
 		if (doc)
@@ -12,7 +13,7 @@ block page
 block content
 	- var zfactor = 0.15 * zoom;
 	- var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-	
+	input(type="hidden", value= index)
 	if (infowindow)
 		include gallery.pug
 		
@@ -20,18 +21,27 @@ block content
 		if (menu !== 'home')
 			- var ind = parseInt(index, 10)
 			#arrows
-				if ((ind + 1) < data[geoindex].content.length - 1)
+				if ((ind + 1) < data[geoindex].content.length && (ind - 1) >= 0)
 					a.arrow.left(href="/focus/"+geoindex+"/"+(ind+1)+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
-				else
-					a.arrow.left(href="/focus/"+geoindex+"/"+0+"/"+zoom+"/"+lat+"/"+lng+"")
-						i.ms-Icon.ms-Icon--chevronThickLeft
-				if ((ind - 1) < 0)
-					a.arrow.right(href="/focus/"+geoindex+"/"+data[geoindex].content[data[geoindex].content.length-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
-						i.ms-Icon.ms-Icon--chevronThickRight
-				else
 					a.arrow.right(href="/focus/"+geoindex+"/"+(ind-1)+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
+				
+					
+				if ((ind - 1) < 0)
+					a.arrow.left(href="/focus/"+geoindex+"/"+(ind+1)+"/"+zoom+"/"+lat+"/"+lng+"")
+						i.ms-Icon.ms-Icon--chevronThickLeft
+					
+					a.arrow.right(href="/focus/"+geoindex+"/"+data[geoindex].content[data[geoindex].content.length-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
+						i.ms-Icon.ms-Icon--chevronThickRight
+				if ((ind + 1) >= data[geoindex].content.length)
+					a.arrow.left(href="/focus/"+geoindex+"/"+0+"/"+zoom+"/"+lat+"/"+lng+"")
+						i.ms-Icon.ms-Icon--chevronThickLeft
+					a.arrow.right(href="/focus/"+geoindex+"/"+(ind-1)+"/"+zoom+"/"+lat+"/"+lng+"")
+						i.ms-Icon.ms-Icon--chevronThickRight
+					
+				
+					
 		else
 			- var geoind = parseInt(geoindex, 10)
 			#arrows
@@ -52,7 +62,7 @@ block content
 	
 	if (tl)
 		#tl
-			if (index)
+			if (menu !== 'home')
 				#wrapper(style="left: "+ (50-((new Date(data[geoindex].content[index].properties.time.begin).getFullYear() - tl[0].year + ((new Date(data[geoindex].content[index].properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10) + "%")
 
 					div.ms-Grid-col.ms-u-sm12
@@ -103,10 +113,10 @@ block content
 						each module, j in data
 							each entry, k in module.content
 								if (doc && k === index)
-									a.module.block(href="/"+doc.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc.geoindex + "@" + k + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+									a.module.block(href="/"+module.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc.geoindex + "@" + k + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 										span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{doc.name}
 								else
-									a.module.block(href="/"+module.name+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + entry.index + "", style="left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+									a.module.block(href="/geofocus/"+geoindex+"/"+6+"/"+lat+"/"+lng+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + entry.index + "", style="left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 	
 	if (infowindow && infowindow !== 'new' && infowindow !== 'edit')
 		div.ms-Overlay.ms-Overlay--dark.js-togglePanel
@@ -240,8 +250,24 @@ block content
 		var featurePane = map.createPane('featurePane');
 		featurePane.style.zIndex = 20000;
 		
-		
-		
+		/*potential layers*/
+		var infowindow = L.Control.extend({
+			options: {
+		        position: 'topright'
+		    },
+
+		    onAdd: function (map) {
+		        var container = L.DomUtil.create('div', 'ms-Panel ms-Panel--small infowindoww')
+				var shadow = L.DomUtil.create('div', 'ms-Overlay ms-Overlay--dark js-togglePanel')
+				var content = L.DomUtil.create('div', 'ms-Panel-main ms-Grid')
+				var inner = L.DomUtil.create('div', 'ms-Grid-row ms-Panel-contentInner')
+				
+				content.append(inner);
+				container.append(shadow);
+				container.append(content);
+		        return container;
+		    }
+		})
 		var MyControl = L.Control.extend({
 		    options: {
 		        position: 'topright'
@@ -259,7 +285,44 @@ block content
 		        return container;
 		    }
 		});
+		var hous = L.Control.extend({
+			options: {
+		        position: 'topright'
+		    },
+
+		    onAdd: function (map) {
+		        var container = L.DomUtil.create('div', 'ms-Panel ms-Panel--small hous')
+				var shadow = L.DomUtil.create('div', 'ms-Overlay ms-Overlay--dark js-togglePanel')
+				var content = L.DomUtil.create('div', 'ms-Panel-main ms-Grid')
+				var inner = L.DomUtil.create('div', 'ms-Grid-row ms-Panel-contentInner')
+				
+				content.append(inner);
+				container.append(shadow);
+				container.append(content);
+		        return container;
+		    }
+		});
+		var es = L.Control.extend({
+			options: {
+		        position: 'topright'
+		    },
+
+		    onAdd: function (map) {
+		        var container = L.DomUtil.create('div', 'ms-Panel ms-Panel--small es')
+				var shadow = L.DomUtil.create('div', 'ms-Overlay ms-Overlay--dark js-togglePanel')
+				var content = L.DomUtil.create('div', 'ms-Panel-main ms-Grid')
+				var inner = L.DomUtil.create('div', 'ms-Grid-row ms-Panel-contentInner')
+				
+				content.append(inner);
+				container.append(shadow);
+				container.append(content);
+		        return container;
+		    }
+		})
+		map.addControl(new infowindow());
 		map.addControl(new MyControl());
+		map.addControl(new hous());
+		map.addControl(new es());
 		map.dragging.enable();
 		map.touchZoom.enable();
 		map.doubleClickZoom.enable();
@@ -292,7 +355,7 @@ block content
 						pointToLayer: function (feature, latlng) {
 							var fillColor;
 							console.log(feature.properties._id)
-							if (feature.properties._id === i) {
+							if (feature.index === i) {
 								fillColor = "#F11810"
 							} else {
 								fillColor = "#BAD80A"

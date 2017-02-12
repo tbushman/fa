@@ -398,6 +398,16 @@ a.username:hover > .ms-font-l {
 	background-color: #BAD80A;
 	display: inline;
 }
+
+.module.block {
+	background-color: rgba(255, 255, 255, 0);
+	background-image: linear-gradient(to bottom, #EEF4DE,  #BAD80A);
+}
+
+.module.block.hover {
+	background-color: rgba(255, 255, 255, 0);
+	background-image: linear-gradient(to bottom, #FFF,  #BAD80A);
+}
 @media (max-width: 639px) and (orientation: portrait) {
 	.ms-Panel--small, .ms-Panel--medium {
 		bottom: 50%;
