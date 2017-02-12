@@ -4,11 +4,19 @@ if (menu === 'profile' || menu === 'home')
 			li
 				input#mySearch.ms-TextField-field(type="search", placeholder="search")
 				a(href="#", title="Menu")
-					img(src="http://pu.bli.sh/images/menu_button.svg")
+					if (menu === 'home')
+						img(src="http://pu.bli.sh/images/menu_button.svg")
+					else
+						if ("/publishers/fad/"+geoname+"/"+loggedin+"/images/avatar/"+loggedin+".svg")
+							img(src="/publishers/fad/"+geoname+"/"+loggedin+"/images/avatar/"+loggedin+".svg")
+						else 
+							img(src="/publishers/fad/"+geoname+"/"+loggedin+"/images/avatar/"+loggedin+".png")
 
 				div#dropdown
 					a.drop.ms-Grid-col.ms-u-sm12#home(href="/home") 
 						span.ms-font-l pu.bli.sh Home
+					a.drop.ms-Grid-col.ms-u-sm12#gallery(href="/gallery/"+geoindex+"/all_0/0/"+zoom+"/"+lat+"/"+lng+"") 
+						span.ms-font-l Gallery
 					a.drop.ms-Grid-col.ms-u-sm12#addfeature(href="#", title=""+loggedin+"") 
 						span.ms-font-l Add Feature
 					a.drop.ms-Grid-col.ms-u-sm12#logout(href="/logout") 
@@ -17,7 +25,7 @@ if (menu === 'profile' || menu === 'home')
 
 			a.username(href="mailto:"+pu.email+"?Subject=Design%20Services%20Request", target="_top", title="E-mail") 
 
-				span.ms-font-l #{pu.username}
+				span.ms-font-l.ms-fontWeight-semibold #{loggedin}
 	else
 		#menu
 			li
@@ -28,17 +36,16 @@ if (menu === 'profile' || menu === 'home')
 				div#dropdown
 					a.drop.ms-Grid-col.ms-u-sm12#contact(href="/") 
 						span.ms-font-l Home
-					if (loggedin)
-						a.drop.ms-Grid-col.ms-u-sm12#cv(href="http://pu.bli.sh/"+ loggedin +"", target="_blank") 
-							span.ms-font-l My Profile
-						a.drop.ms-Grid-col.ms-u-sm12#logout(href="/logout") 
-							span.ms-font-l Log out
-						
+					if (menu === 'home')
+						a.drop.ms-Grid-col.ms-u-sm12#gallery(href="/gallery/"+geoindex+"/all_0/0/"+zoom+"/"+lat+"/"+lng+"") 
+							span.ms-font-l Gallery
 					else
-						a.drop.ms-Grid-col.ms-u-sm12#cv(href="/login") 
-							span.ms-font-l Login
-						a.drop.ms-Grid-col.ms-u-sm12#gallery(href="/register") 
-							span.ms-font-l Register
+						a.drop.ms-Grid-col.ms-u-sm12#gallery(href="/gallery/"+geoindex+"/all_"+index+"/0/"+zoom+"/"+lat+"/"+lng+"") 
+							span.ms-font-l Gallery
+					a.drop.ms-Grid-col.ms-u-sm12#cv(href="/login") 
+						span.ms-font-l Login
+					a.drop.ms-Grid-col.ms-u-sm12#gallery(href="/register") 
+						span.ms-font-l Register
 	script(type="text/javascript").
 		$(document).on('change', '#mySearch', function(e){
 			e.preventDefault();

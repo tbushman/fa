@@ -660,12 +660,11 @@ router.get('/home', function(req, res, next) {
 				index = current[current.length-1]
 				if (!er && pubs === null) {
 					return res.render('publish', {
+						index: 0,
 						geoindex: geoindex,
-						index: index,
 						data: data,//rray,
 						doc: data[data.length-1],
 						tl: tl,
-						index: index,
 						zoom: zoom,
 						lng: lng,
 						lat: lat,
@@ -673,13 +672,12 @@ router.get('/home', function(req, res, next) {
 					})
 				}
 				return res.render('publish', {
+					index: 0,
 					geoindex: geoindex,
-					index: index,
 					loggedin: req.app.locals.loggedin,
 					data: data,
 					doc: pubs[geoindex],
 					tl: tl,
-					index: index,
 					zoom: zoom,
 					lng: lng,
 					lat: lat,
@@ -689,12 +687,11 @@ router.get('/home', function(req, res, next) {
 			
 		} else {
 			return res.render('publish', {
+				index: 0,
 				geoindex: data[data.length - 1].geoindex,
-				index: index,
 				data: data,//rray,
 				doc: data[data.length-1],
 				tl: tl,
-				index: index,
 				zoom: zoom,
 				lng: lng,
 				lat: lat,
@@ -738,22 +735,17 @@ router.post('/zoom/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 	});
 });*/
 router.get('/:name', ensureGt, function(req, res, next){
-	Geotime.find({name: req.params.name}, function(error, data){
+	Geotime.findOne({name: req.params.name}, function(error, doc){
 		if (error) {
 			return next(error)
 		}
-		if (!error && data[0] === undefined) {
+		if (!error && doc === null) {
 			return res.redirect('/home')
 		} else {
 			var userindex;
 			
 			//to identify collaborator in api
-			var userindarray = data[0].publishers
-			/*for (var i in data) {
-				for (var j in data[i].publishers) {
-					userindarray.push(data[i].publishers[j].userindex)
-				}
-			}*/
+			var userindarray = doc.publishers
 			if (userindarray[0] === undefined) {
 				return res.redirect('/home')
 			} else {
@@ -770,35 +762,10 @@ router.get('/:name', ensureGt, function(req, res, next){
 					index = 0;
 					req.app.locals.index = 0;
 				//}
-				if (req.app.locals.geoindex) {
-					geoindex = req.app.locals.geoindex;
-					userindex = req.app.locals.userindex;
-				} else {
-					
-					/*for (var i in userindarray) {
-						if (userindarray[i].userindex === req.app.locals.userindex && ) {
-							//userindarray.splice()
-						} else {
-							
-						}
-					}
-					/*for (var i in data) {
-						for (var j in data[i].publishers) {
-							if (data[i].publishers[j].userindex === contentarray[j]) {
-								userindex = data[i].publishers[j].userindex;
-								geoindex = data[i].geoindex;
-							}
-						}
-						
-					}*/
-					//req.app.locals.index = index;
-					//req.app.locals.geoindex = geoindex;
-					geoindex = 0;
-					req.app.locals.geoindex = geoindex;
-					userindex = 0;
-//					req.app.locals.userindex = user
-				}
-				Geotime.findOne({geoindex: geoindex, 'content.index': req.app.locals.index}, function(errr, doc){
+				geoindex = doc.geoindex;
+				req.app.locals.geoindex = geoindex;
+				userindex = 0;
+				Geotime.find({}, function(errr, data){
 					if (errr) {
 						return next(errr)
 					}
@@ -823,7 +790,7 @@ router.get('/:name', ensureGt, function(req, res, next){
 								username: doc.publishers[0].username,
 								userindex: doc.publishers[0].userindex,
 								loggedin: req.app.locals.loggedin,
-								index: index,
+								index: 0,
 								zoom: zoom,
 								doc: doc,
 								data: datarray,
@@ -838,9 +805,9 @@ router.get('/:name', ensureGt, function(req, res, next){
 								geoindex: geoindex,
 								username: data[geoindex].publishers[0].username,
 								userindex: data[geoindex].publishers[0].userindex,
-								index: index,
+								index: 0,
 								zoom: zoom,
-								doc: data[geoindex],
+								doc: doc,
 								data: datarray,
 								pu: data[geoindex].publishers[0],
 								tl: data[geoindex].tl,
@@ -852,11 +819,11 @@ router.get('/:name', ensureGt, function(req, res, next){
 					} else {
 						zoom = 3
 
-						if (data[geoindex].content.length === 0) {
+						if (doc.content.length === 0) {
 							return next('That user has not added any content yet.')
 						} else {
-							lat = doc.content[index].geometry.coordinates[1];
-							lng = doc.content[index].geometry.coordinates[0];
+							lat = doc.content[0].geometry.coordinates[1];
+							lng = doc.content[0].geometry.coordinates[0];
 							info = 'Intro';
 							var datarray = [];
 							for (var l in data) {
@@ -868,7 +835,7 @@ router.get('/:name', ensureGt, function(req, res, next){
 									username: doc.publishers[0].username,
 									userindex: doc.publishers[0].userindex,
 									loggedin: req.app.locals.loggedin,
-									index: index,
+									index: 0,
 									zoom: zoom,
 									doc: doc,
 									data: datarray,
@@ -883,12 +850,12 @@ router.get('/:name', ensureGt, function(req, res, next){
 									geoindex: geoindex,
 									username: doc.publishers[0].username,
 									userindex: doc.publishers[0].userindex,
-									index: index,
+									index: 0,
 									zoom: zoom,
 									doc: doc,
 									data: datarray,
-									pu: data[geoindex].publishers[0],
-									tl: data[geoindex].tl,
+									pu: doc.publishers[0],
+									tl: doc.tl,
 									lng: lng,
 									lat: lat,
 									info: info
@@ -985,6 +952,7 @@ router.all('/geofocus/:geoindex/:zoom/:lat/:lng', function(req, res, next){
 						return next(er)
 					}
 					return res.render('publish', {
+						index: 0,
 						geoindex: geoindex,
 						loggedin: req.app.locals.loggedin,
 						infowindow: 'doc',
@@ -1003,6 +971,7 @@ router.all('/geofocus/:geoindex/:zoom/:lat/:lng', function(req, res, next){
 				
 			} else {
 				return res.render('publish', {
+					index: 0,
 					geoindex: geoindex,
 					infowindow: 'doc',
 					username: doc.publishers[0].username,
@@ -1022,7 +991,6 @@ router.all('/geofocus/:geoindex/:zoom/:lat/:lng', function(req, res, next){
 
 router.all('/focus/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
-	var id = req.params.id;
 	var geoindex = parseInt(req.params.geoindex, 10)
 	var index = parseInt(req.params.index, 10);
 	var zoom = req.params.zoom;
@@ -1058,7 +1026,7 @@ router.all('/focus/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 					}
 					return res.render('publish', {
 						geoindex: geoindex,
-						index: index,
+						index: doc.content[0].index,
 						loggedin: req.app.locals.loggedin,
 						infowindow: 'doc',
 						username: doc.publishers[0].username,
@@ -1077,7 +1045,7 @@ router.all('/focus/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 			} else {
 				return res.render('publish', {
 					geoindex: geoindex,
-					index: index,
+					index: doc.content.index,
 					infowindow: 'doc',
 					username: doc.publishers[0].username,
 					userindex: 0,//data[geoindex].content[index].properties._id,
@@ -1097,7 +1065,7 @@ router.all('/focus/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 
 router.post('/list/:geoindex/:index/:zoom/:lat/:lng', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
-	var geoindex = req.params.geoindex;
+	var geoindex = parseInt(req.params.geoindex, 10);
 	var index = req.params.index;
 	var zoom = req.params.zoom;
 	var lat = req.params.lat;
@@ -1180,6 +1148,7 @@ router.get('/doc/:id/:zoom/:lat/:lng', function(req, res, next){
 
 router.all('/gallery/:geoindex/:index/:imgindex/:zoom/:lat/:lng', function(req, res, next){
 	var outputPath = url.parse(req.url).pathname;
+	console.log(outputPath)
 	var geoindex = parseInt(req.params.geoindex, 10);
 	var imgindex = parseInt(req.params.imgindex, 10);
 	var zoom = req.params.zoom;
@@ -1198,13 +1167,18 @@ router.all('/gallery/:geoindex/:index/:imgindex/:zoom/:lat/:lng', function(req, 
 			}
 			var img;
 			var type;
-			if (!doc.content[index].properties.media[imgindex].image) {
-				type = 'iframe'
-				img = doc.content[index].properties.media[imgindex].iframe
+			if (doc.content[index].properties.media.length > 0/* && doc.content[index].properties.media[imgindex].image !== '/images/publish_logo_sq.svg'*/) {
+				if (!doc.content[index].properties.media[imgindex].image) {
+					type = 'iframe'
+					img = doc.content[index].properties.media[imgindex].iframe
+				} else {
+					type = 'image'
+					img = doc.content[index].properties.media[imgindex].image
+				}
 			} else {
-				type = 'image'
-				img = doc.content[index].properties.media[imgindex].image
+				img = null
 			}
+			
 			Geotime.find({}, function(error, data) {
 				if (error) {
 					return next(error)
@@ -1223,8 +1197,8 @@ router.all('/gallery/:geoindex/:index/:imgindex/:zoom/:lat/:lng', function(req, 
 							index: index,
 							infowindow: 'gallery',
 							loggedin: req.app.locals.loggedin,
-							userindex: doc.userindex,
-							username: doc.username,
+							userindex: doc.publishers[0].userindex,
+							username: doc.publishers[0].username,
 							zoom: zoom,
 							data: datarray,
 							pu: pu,
@@ -1243,8 +1217,8 @@ router.all('/gallery/:geoindex/:index/:imgindex/:zoom/:lat/:lng', function(req, 
 						geoindex: geoindex,
 						index: index,
 						infowindow: 'gallery',
-						userindex: doc.userindex,
-						username: doc.username,
+						userindex: doc.publishers[0].userindex,
+						username: doc.publishers[0].username,
 						zoom: zoom,
 						data: datarray,
 						img: img,
@@ -1262,22 +1236,26 @@ router.all('/gallery/:geoindex/:index/:imgindex/:zoom/:lat/:lng', function(req, 
 	} else {
 		index = parseInt(req.params.index, 10);
 		req.app.locals.index = index;
-		var key = 'content.$'
-		var query = {_id: id, content: {$elemMatch: {index: index}}}
+		//var key = 'content.$'
+		//var query = {_id: id, content: {$elemMatch: {index: index}}}
 		//var projection = {key: 1}
 
-		Geotime.findOne({content: {$elemMatch: {_id: id, index: index}}}, function(err, doc){
+		Geotime.findOne({geoindex: geoindex}, function(err, doc){
 			if (err) {
 				return next(err)
 			}
 			var img;
 			var type;
-			if (!doc.content[index].properties.media[imgindex].image) {
-				type = 'iframe'
-				img = doc.content[index].properties.media[imgindex].iframe
+			if (doc.content[index].properties.media.length > 0 && doc.content[index].properties.media[imgindex].image !== '/images/publish_logo_sq.svg') {
+				if (!doc.content[index].properties.media[imgindex].image) {
+					type = 'iframe'
+					img = doc.content[index].properties.media[imgindex].iframe
+				} else {
+					type = 'image'
+					img = doc.content[index].properties.media[imgindex].image
+				}
 			} else {
-				type = 'image'
-				img = doc.content[index].properties.media[imgindex].image
+				img = null
 			}
 			Geotime.find({}, function(error, data) {
 				if (error) {
@@ -1297,8 +1275,8 @@ router.all('/gallery/:geoindex/:index/:imgindex/:zoom/:lat/:lng', function(req, 
 							index: index,
 							infowindow: 'doc',
 							loggedin: req.app.locals.loggedin,
-							userindex: doc.userindex,
-							username: doc.username,
+							userindex: doc.publishers[0].userindex,
+							username: doc.publishers[0].username,
 							zoom: zoom,
 							data: datarray,
 							pu: pu,
@@ -1317,8 +1295,8 @@ router.all('/gallery/:geoindex/:index/:imgindex/:zoom/:lat/:lng', function(req, 
 						geoindex: geoindex,
 						index: index,
 						infowindow: 'doc',
-						userindex: doc.userindex,
-						username: doc.username,
+						userindex: doc.publishers[0].userindex,
+						username: doc.publishers[0].username,
 						zoom: zoom,
 						data: datarray,
 						img: img,

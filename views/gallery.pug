@@ -11,26 +11,29 @@ if (infowindow === 'gallery')
 				div.ms-Grid-row.ms-Grid-col.ms-u-sm12.ms-u-lg4#sidepanel
 					div.ms-Grid-col.ms-u-sm12
 						each group, k in doc.content
-							p.ms-font-s.ms-fontWeight-semibold(id="scrollto_"+group.index+"") #{group.properties.label} 
+							if (group.properties.media.length > 0)
+								p.ms-font-s.ms-fontWeight-semibold(id="scrollto_"+group.index+"") #{group.properties.label} 
 
-							p.ms-font-xs #{group.properties.description}
-							each item, j in group.properties.media
-								div.ms-Grid-col.ms-u-sm12
-									a.ms-ListItem-image.gallery(id= item.index, name= group._id + "@all_" + group.index)
-										img(src= item.thumb)
-									div#hide
-										if (item.name === '')
-											span.ms-ListItem-secondaryText &nbsp
-										else
-											span.ms-ListItem-secondaryText #{item.name}
-										span.ms-ListItem-tertiaryText #{item.caption}
+								p.ms-font-xs #{group.properties.description}
 
-										div.ms-ListItem-actions
-											if (item.url)
-												div.ms-ListItem-action
-													a(href= item.url, target="_blank")
-														i.ms-Icon.ms-Icon--link
-							p.ms-font-xs &nbsp
+									div.ms-Grid-col.ms-u-sm12
+										each item, j in group.properties.media
+											a.ms-ListItem-image.gallery(id= item.index, name="all_"+ group.index)
+												img(src= item.thumb)
+											div#hide
+												if (item.name === '')
+													span.ms-ListItem-secondaryText &nbsp
+												else
+													span.ms-ListItem-secondaryText #{item.name}
+												span.ms-ListItem-tertiaryText #{item.caption}
+
+												div.ms-ListItem-actions
+													if (item.url)
+														div.ms-ListItem-action
+															a(href= item.url, target="_blank")
+																i.ms-Icon.ms-Icon--link
+							
+								p.ms-font-xs &nbsp
 					
 					a#closepanel
 						i.ms-Icon.ms-Icon--x
@@ -162,7 +165,7 @@ if (infowindow === 'edit' || infowindow === 'layout')
 							p
 							each item, i in doc.content[index].properties.media
 								div.ms-Grid-col.ms-u-sm12.spacer#resize
-									a.ms-ListItem-image(href="#", id= item.index, name= doc.content[index]._id)
+									a.ms-ListItem-image(href="#", id= item.index, name= index)
 										img(src= item.thumb)
 									input(type="hidden", name="thumb"+i+"", value= item.thumb)
 									if (item.image === "")
@@ -287,7 +290,7 @@ if (infowindow === 'intro')
 				div#sidepanel.ms-Grid-col.ms-u-sm12.ms-u-lg4
 					each item, i in doc.content[index].properties.media
 						div.ms-Grid-col.ms-u-sm12#resize
-							a.ms-ListItem-image(href="#", id= item.index, name= doc.content[index]._id)
+							a.ms-ListItem-image(href="#", id= item.index, name= index)
 								img(src= item.thumb)
 							div#hide
 								if (item.name === '')
@@ -339,7 +342,7 @@ if (infowindow === 'doc')
 							p.ms-font-xs #{doc.content[index].properties.media[imgindex].caption}
 							each item, i in doc.content[index].properties.media
 								div.ms-Grid-col.ms-u-sm12
-									a.ms-ListItem-image(id= item.index, name= doc.content[index]._id + "@" + index)
+									a.ms-ListItem-image(id= item.index, name= index)
 										img(src= item.thumb)
 									div#hide
 										if (item.name === '')
@@ -366,7 +369,7 @@ if (infowindow === 'doc')
 							p
 							each item, i in doc.content[index].properties.media
 								div.ms-Grid-col.ms-u-sm12#resize
-									a.ms-ListItem-image(href="#", id= item.index, name= doc.content[index]._id)
+									a.ms-ListItem-image(href="#", id= item.index, name= index)
 										img(src= item.thumb)
 									div#hide
 										if (item.name === '')

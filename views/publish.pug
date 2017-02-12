@@ -8,10 +8,7 @@ block page
 		if (doc)
 			- var menudata = doc
 		else
-			if (data.length > 2)
-				- var menudata = data
-			else
-				- var menudata = data[0]
+			- var menudata = data[0]
 block content
 	- var zfactor = 0.15 * zoom;
 	- var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -20,16 +17,16 @@ block content
 		include gallery.pug
 		
 	if (tl)
-		if (index)
+		if (menu !== 'home')
 			- var ind = parseInt(index, 10)
 			#arrows
-				if (ind+1 < data[geoindex].content.length)
+				if ((ind + 1) < data[geoindex].content.length - 1)
 					a.arrow.left(href="/focus/"+geoindex+"/"+(ind+1)+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
 				else
 					a.arrow.left(href="/focus/"+geoindex+"/"+0+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickLeft
-				if (parseInt(index, 10)-1 < 0)
+				if ((ind - 1) < 0)
 					a.arrow.right(href="/focus/"+geoindex+"/"+data[geoindex].content[data[geoindex].content.length-1].index+"/"+zoom+"/"+lat+"/"+lng+"")
 						i.ms-Icon.ms-Icon--chevronThickRight
 				else
@@ -77,7 +74,7 @@ block content
 				
 					div.ms-Grid-col.ms-u-sm12
 						each module, j in data[geoindex].content
-							if (doc && j === doc.content[index].index)
+							if (doc && j === module.index)
 								a.module.block(href="/focus/"+geoindex+"/"+module.index+"/"+6+"/"+lat+"/"+lng+"", title= module.properties.place, name= module.properties.label, id="" + geoindex + "@" + module.index + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(module.properties.time.begin).getFullYear() - tl[0].year + ((new Date(module.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(module.properties.time.end).getFullYear() ) + ( ( new Date(module.properties.time.end).getMonth() ) / 11 )) - (( new Date(module.properties.time.begin).getFullYear() ) + ( ( new Date(module.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 									span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{module.properties.title}
 							else
@@ -105,11 +102,11 @@ block content
 					div.ms-Grid-col.ms-u-sm12
 						each module, j in data
 							each entry, k in module.content
-								if (doc && k === entry.index)
-									a.module.block(href="/"+doc.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc.geoindex + "@" + j + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+								if (doc && k === index)
+									a.module.block(href="/"+doc.name+"", title= doc.name, name= doc.publishers[0].username, id="" + doc.geoindex + "@" + k + "", style="z-index: 0; height: 60px; margin-top: 18px; background-color: #BAD80A; left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 										span.ms-font-xs.ms-fontWeight-semibold(style="z-index: 2") #{doc.name}
 								else
-									a.module.block(href="/geofocus/"+module.geoindex+"/"+6+"/"+lat+"/"+lng+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + entry.index + "", style="left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
+									a.module.block(href="/"+module.name+"", title= module.name, name= module.publishers[0].username, id="" + module.geoindex + "@" + entry.index + "", style="left: "+ ((new Date(entry.properties.time.begin).getFullYear() - tl[0].year + ((new Date(entry.properties.time.begin).getMonth()) / 11 ) )*(zoom*zfactor))*10 + "%; width: "+ (((( new Date(entry.properties.time.end).getFullYear() ) + ( ( new Date(entry.properties.time.end).getMonth() ) / 11 )) - (( new Date(entry.properties.time.begin).getFullYear() ) + ( ( new Date(entry.properties.time.begin).getMonth() ) / 11 )) ) * (zoom*zfactor) ) * 10 + "%")
 	
 	if (infowindow && infowindow !== 'new' && infowindow !== 'edit')
 		div.ms-Overlay.ms-Overlay--dark.js-togglePanel
@@ -208,20 +205,18 @@ block content
 		$(document).on('click', '.ms-ListItem-image', function(e){
 			e.preventDefault()
 			var imgindex = $(this).attr('id')
-			var userid = $(this).attr('name').split('@')[0]
+			var index = $(this).attr('name')
 			zoom = map.getZoom();
 			var center = map.getCenter()
 			var lat = center.lat;
 			var lng = center.lng;
 			
 			if ($(this).hasClass('gallery')) {
-				var windex = $(this).attr('name').split('@')[1];
-				var index = windex.split('all_')[1]
-				$.post('/gallery/'+geoindex+'/'+windex+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'', function(){
-					window.location.href = '/gallery/'+geoindex+'/'+windex+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'#scrollto_'+index+''
+				var windex = index.split('all_')[1]
+				$.post('/gallery/'+geoindex+'/'+index+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'', function(){
+					window.location.href = '/gallery/'+geoindex+'/'+windex+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'#scrollto_'+windex+''
 				})
 			} else {
-				var index = #{index}
 				$.post('/gallery/'+geoindex+'/'+index+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+'', function(){
 					window.location.href = '/gallery/'+geoindex+'/'+index+'/'+imgindex+'/'+zoom+'/'+lat+'/'+lng+''
 				})
@@ -309,7 +304,7 @@ block content
 							    weight: 2,
 							    opacity: 1,
 							    fillOpacity: 0.8,
-								className: feature.geoindex+"@"+feature.index
+								className: i+"@"+feature.index
 							};
 							return L.circleMarker(latlng, geojsonMarkerOptions);
 						}
@@ -329,7 +324,7 @@ block content
 							    weight: 2,
 							    opacity: 1,
 							    fillOpacity: 0.8,
-								className: feature.geoindex+"@"+feature.index
+								className: i+"@"+feature.index
 							};
 							return L.circleMarker(latlng, geojsonMarkerOptions);
 						}
